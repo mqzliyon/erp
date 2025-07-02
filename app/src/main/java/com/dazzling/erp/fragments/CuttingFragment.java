@@ -33,7 +33,6 @@ public class CuttingFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private TextView emptyStateText;
-    private FloatingActionButton fabAdd;
     private List<Cutting> cuttingList;
     private FirestoreService firestoreService;
     private CuttingAdapter cuttingAdapter;
@@ -55,7 +54,6 @@ public class CuttingFragment extends Fragment {
     private void initializeViews(View view) {
         recyclerView = view.findViewById(R.id.recycler_cutting);
         emptyStateText = view.findViewById(R.id.text_empty_state);
-        fabAdd = view.findViewById(R.id.fab_add_cutting);
         lottieLoading = view.findViewById(R.id.lottie_loading);
         cuttingList = new ArrayList<>();
         firestoreService = new FirestoreService();
@@ -68,10 +66,7 @@ public class CuttingFragment extends Fragment {
     }
 
     private void setupListeners() {
-        fabAdd.setOnClickListener(v -> {
-            // TODO: Open add cutting operation dialog
-            Snackbar.make(v, "Add Cutting Operation functionality coming soon!", Snackbar.LENGTH_SHORT).show();
-        });
+        // Removed fabAdd.setOnClickListener
     }
 
     private void loadCuttingOperations() {
@@ -133,8 +128,13 @@ public class CuttingFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Cutting cutting = cuttingList.get(position);
+            // Show pcs if available, otherwise kg
+            if (cutting.getQuantityPcs() > 0) {
+                holder.quantity.setText(String.format("%.0f pcs", cutting.getQuantityPcs()));
+            } else {
+                holder.quantity.setText(String.format("%.2f kg", cutting.getQuantityKg()));
+            }
             holder.fabricType.setText(cutting.getFabricType());
-            holder.quantity.setText(String.format("%.2f kg", cutting.getQuantityKg()));
             holder.date.setText("Date: " + (cutting.getCreatedAt() != null ? dateFormat.format(cutting.getCreatedAt()) : ""));
 
             // View mode on item click
@@ -146,14 +146,26 @@ public class CuttingFragment extends Fragment {
             holder.menu.setOnClickListener(v -> {
                 androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(v.getContext(), v);
                 popup.getMenuInflater().inflate(R.menu.menu_cutting_item, popup.getMenu());
+                // Add Update option if converted
+                if (cutting.getQuantityPcs() > 0) {
+                    popup.getMenu().add("Update");
+                }
                 popup.setOnMenuItemClickListener(item -> {
                     if (item.getItemId() == R.id.action_delete) {
                         fragment.showDeleteCuttingDialog(v, cutting);
+                        return true;
+                    } else if ("Update".equals(item.getTitle())) {
+                        fragment.showUpdateCuttingDialog(cutting);
                         return true;
                     }
                     return false;
                 });
                 popup.show();
+            });
+
+            // Sync icon click: show convert dialog
+            holder.sync.setOnClickListener(v -> {
+                fragment.showConvertCuttingDialog(cutting);
             });
         }
         @Override
@@ -164,6 +176,7 @@ public class CuttingFragment extends Fragment {
             ImageView icon;
             TextView fabricType, quantity, date;
             ImageView menu;
+            ImageView sync;
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 icon = itemView.findViewById(R.id.image_cutting_icon);
@@ -171,6 +184,7 @@ public class CuttingFragment extends Fragment {
                 quantity = itemView.findViewById(R.id.text_cutting_quantity);
                 date = itemView.findViewById(R.id.text_cutting_date);
                 menu = itemView.findViewById(R.id.image_cutting_menu);
+                sync = itemView.findViewById(R.id.image_cutting_sync);
             }
         }
     }
@@ -183,7 +197,19 @@ public class CuttingFragment extends Fragment {
             message.append("Fabric Type: ").append(cutting.getFabricType() != null ? cutting.getFabricType() : "").append("\n");
             message.append("Reference: ").append(cutting.getFabricType() != null ? cutting.getFabricType() : "").append("\n");
             message.append("Date: ").append(cutting.getCreatedAt() != null ? new java.text.SimpleDateFormat("dd-MM-yyyy hh:mm a").format(cutting.getCreatedAt()) : "").append("\n");
-            message.append("Quantity: ").append(String.format("%.2f kg", cutting.getQuantityKg()));
+            if (cutting.getQuantityPcs() > 0) {
+                message.append("Current Quantity: ").append(String.format("%.0f pcs", cutting.getQuantityPcs())).append("\n");
+                Double originalKg = cutting.getOriginalQuantityKg();
+                if (originalKg != null) {
+                    message.append("Original Quantity: ").append(String.format("%.2f kg", originalKg)).append("\n");
+                    if (originalKg > 0) {
+                        double pcsPerKg = cutting.getQuantityPcs() / originalKg;
+                        message.append("Pcs per kg: ").append(String.format("%.2f", pcsPerKg)).append("\n");
+                    }
+                }
+            } else {
+                message.append("Quantity: ").append(String.format("%.2f kg", cutting.getQuantityKg()));
+            }
             builder.setMessage(message.toString());
             builder.setPositiveButton("OK", null);
             builder.show();
@@ -208,7 +234,7 @@ public class CuttingFragment extends Fragment {
                                 break;
                             }
                         }
-                        double qty = cutting.getQuantityKg();
+                        double qty = cutting.getOriginalQuantityKg() != null ? cutting.getOriginalQuantityKg() : cutting.getQuantityKg();
                         String fabricType = cutting.getFabricType();
                         String color = cutting.getColor();
                         String lotNumber = cutting.getLotNumber();
@@ -244,5 +270,123 @@ public class CuttingFragment extends Fragment {
             })
             .setNegativeButton("Cancel", null)
             .show();
+    }
+
+    public void showConvertCuttingDialog(Cutting cutting) {
+        if (!isAdded()) return;
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext());
+        builder.setTitle("Convert Cutting");
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 8);
+
+        // Quantity (disabled, in kg)
+        final android.widget.EditText etQuantityKg = new android.widget.EditText(requireContext());
+        etQuantityKg.setHint("Quantity (kg)");
+        etQuantityKg.setText(String.format("%.2f", cutting.getQuantityKg()));
+        etQuantityKg.setEnabled(false);
+        layout.addView(etQuantityKg);
+
+        // Quantity in pcs (editable)
+        final android.widget.EditText etQuantityPcs = new android.widget.EditText(requireContext());
+        etQuantityPcs.setHint("Quantity (pcs)");
+        etQuantityPcs.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        layout.addView(etQuantityPcs);
+
+        builder.setView(layout);
+        builder.setPositiveButton("Convert", (dialog, which) -> {
+            String pcsValue = etQuantityPcs.getText().toString();
+            if (!pcsValue.isEmpty()) {
+                try {
+                    showLoading(true); // Show loading animation
+                    double pcs = Double.parseDouble(pcsValue);
+                    // Set originalQuantityKg only if not set
+                    if (cutting.getOriginalQuantityKg() == null) {
+                        cutting.setOriginalQuantityKg(cutting.getQuantityKg());
+                    }
+                    cutting.setQuantityPcs(pcs);
+                    cutting.setQuantityKg(0); // Remove kg from list view
+                    firestoreService.updateCutting(cutting, new FirestoreService.CuttingCallback() {
+                        @Override public void onCuttingUpdated(com.dazzling.erp.models.Cutting updated) {
+                            cuttingAdapter.notifyDataSetChanged();
+                            android.widget.Toast.makeText(requireContext(), "Conversion successful!", android.widget.Toast.LENGTH_SHORT).show();
+                            showLoading(false);
+                        }
+                        @Override public void onError(String error) {
+                            android.widget.Toast.makeText(requireContext(), "Error: " + error, android.widget.Toast.LENGTH_SHORT).show();
+                            showLoading(false);
+                        }
+                        @Override public void onCuttingDeleted(String cuttingId) {}
+                        @Override public void onCuttingsLoaded(java.util.List<com.dazzling.erp.models.Cutting> cuttings) {}
+                        @Override public void onCuttingAdded(com.dazzling.erp.models.Cutting cutting) {}
+                    });
+                } catch (NumberFormatException ignored) {
+                    showLoading(false); // Hide loading animation on error
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    public void showUpdateCuttingDialog(Cutting cutting) {
+        if (!isAdded()) return;
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext());
+        builder.setTitle("Update Cutting");
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 8);
+
+        // Current Quantity (pcs, disabled)
+        final android.widget.EditText etCurrentPcs = new android.widget.EditText(requireContext());
+        etCurrentPcs.setHint("Current Quantity (pcs)");
+        etCurrentPcs.setText(String.format("%.0f", cutting.getQuantityPcs()));
+        etCurrentPcs.setEnabled(false);
+        layout.addView(etCurrentPcs);
+
+        // Update Quantity (pcs, editable)
+        final android.widget.EditText etUpdatePcs = new android.widget.EditText(requireContext());
+        etUpdatePcs.setHint("Update Quantity (pcs)");
+        etUpdatePcs.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        layout.addView(etUpdatePcs);
+
+        // Date field (default to today)
+        final android.widget.EditText etDate = new android.widget.EditText(requireContext());
+        etDate.setHint("Date");
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault());
+        etDate.setText(sdf.format(new java.util.Date()));
+        layout.addView(etDate);
+
+        builder.setView(layout);
+        builder.setPositiveButton("Update", (dialog, which) -> {
+            String updatePcsValue = etUpdatePcs.getText().toString();
+            String dateValue = etDate.getText().toString();
+            if (!updatePcsValue.isEmpty()) {
+                try {
+                    showLoading(true);
+                    double newPcs = Double.parseDouble(updatePcsValue);
+                    cutting.setQuantityPcs(newPcs);
+                    // Optionally, you can store the date somewhere if needed
+                    firestoreService.updateCutting(cutting, new FirestoreService.CuttingCallback() {
+                        @Override public void onCuttingUpdated(com.dazzling.erp.models.Cutting updated) {
+                            cuttingAdapter.notifyDataSetChanged();
+                            android.widget.Toast.makeText(requireContext(), "Update successful!", android.widget.Toast.LENGTH_SHORT).show();
+                            showLoading(false);
+                        }
+                        @Override public void onError(String error) {
+                            android.widget.Toast.makeText(requireContext(), "Error: " + error, android.widget.Toast.LENGTH_SHORT).show();
+                            showLoading(false);
+                        }
+                        @Override public void onCuttingDeleted(String cuttingId) {}
+                        @Override public void onCuttingsLoaded(java.util.List<com.dazzling.erp.models.Cutting> cuttings) {}
+                        @Override public void onCuttingAdded(com.dazzling.erp.models.Cutting cutting) {}
+                    });
+                } catch (NumberFormatException ignored) {
+                    showLoading(false);
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
     }
 } 

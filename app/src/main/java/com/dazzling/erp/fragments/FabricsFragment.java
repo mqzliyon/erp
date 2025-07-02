@@ -121,6 +121,9 @@ public class FabricsFragment extends Fragment {
         final Calendar calendar = Calendar.getInstance();
         final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
+        // Set default date to today
+        editDate.setText(dateFormat.format(calendar.getTime()));
+
         editDate.setOnClickListener(view -> {
             int year = calendar.get(Calendar.YEAR);
             int month = calendar.get(Calendar.MONTH);
@@ -283,111 +286,77 @@ public class FabricsFragment extends Fragment {
     }
 
     private void showUpdateFabricDialog(Fabric fabric) {
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-        View dialogView = inflater.inflate(R.layout.dialog_add_fabric, null);
-        final EditText editFabricType = dialogView.findViewById(R.id.edit_fabric_type);
-        final EditText editQuantity = dialogView.findViewById(R.id.edit_quantity);
-        final EditText editDate = dialogView.findViewById(R.id.edit_date);
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_fabric, null);
+        EditText editFabricType = dialogView.findViewById(R.id.edit_fabric_type);
+        EditText editQuantity = dialogView.findViewById(R.id.edit_quantity);
+        EditText editDate = dialogView.findViewById(R.id.edit_date);
 
-        final Calendar calendar = Calendar.getInstance();
-        final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-
-        // Pre-fill fields
+        // Set current values
         editFabricType.setText(fabric.getFabricType());
         editQuantity.setText(String.valueOf(fabric.getQuantityKg()));
-        if (fabric.getCreatedAt() != null) {
-            editDate.setText(dateFormat.format(fabric.getCreatedAt()));
-            calendar.setTime(fabric.getCreatedAt());
-        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+        String today = dateFormat.format(new java.util.Date());
+        editDate.setText(today);
 
-        editDate.setOnClickListener(view -> {
-            int year = calendar.get(Calendar.YEAR);
-            int month = calendar.get(Calendar.MONTH);
-            int day = calendar.get(Calendar.DAY_OF_MONTH);
-            DatePickerDialog datePickerDialog = new DatePickerDialog(getContext(), (datePicker, y, m, d) -> {
-                calendar.set(y, m, d);
+        // Date picker
+        editDate.setOnClickListener(v -> {
+            Calendar calendar = Calendar.getInstance();
+            DatePickerDialog datePickerDialog = new DatePickerDialog(getContext(), (view, year, month, dayOfMonth) -> {
+                calendar.set(year, month, dayOfMonth);
                 editDate.setText(dateFormat.format(calendar.getTime()));
-            }, year, month, day);
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
             datePickerDialog.show();
         });
 
-        final com.google.android.material.dialog.MaterialAlertDialogBuilder builder =
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(getContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Update Fabric")
                 .setView(dialogView)
                 .setPositiveButton("Update", null)
-                .setNegativeButton("Cancel", null);
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
+                .create();
 
-        final androidx.appcompat.app.AlertDialog dialog = builder.create();
-        dialog.show();
-
-        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            boolean valid = true;
-            String fabricType = editFabricType.getText().toString().trim();
-            String quantityStr = editQuantity.getText().toString().trim();
-            String dateStr = editDate.getText().toString().trim();
-
-            if (fabricType.isEmpty()) {
-                editFabricType.setError("Fabric Type is required");
-                valid = false;
-            } else {
-                editFabricType.setError(null);
-            }
-            if (quantityStr.isEmpty()) {
-                editQuantity.setError("Quantity is required");
-                valid = false;
-            } else {
+        dialog.setOnShowListener(dlg -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String fabricType = editFabricType.getText().toString().trim();
+                String quantityStr = editQuantity.getText().toString().trim();
+                String dateStr = editDate.getText().toString().trim();
+                if (fabricType.isEmpty() || quantityStr.isEmpty() || dateStr.isEmpty()) {
+                    Toast.makeText(getContext(), "All fields required", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                float quantity;
                 try {
-                    Float.parseFloat(quantityStr);
-                    editQuantity.setError(null);
+                    quantity = Float.parseFloat(quantityStr);
                 } catch (NumberFormatException e) {
-                    editQuantity.setError("Quantity must be a number");
-                    valid = false;
+                    editQuantity.setError("Invalid number");
+                    return;
                 }
-            }
-            if (dateStr.isEmpty()) {
-                editDate.setError("Date is required");
-                valid = false;
-            } else {
-                editDate.setError(null);
-            }
-            if (!valid) return;
-
-            float quantity = Float.parseFloat(quantityStr);
-            java.util.Date date;
-            try {
-                date = dateFormat.parse(dateStr);
-            } catch (Exception e) {
-                editDate.setError("Invalid date format");
-                return;
-            }
-            // Update Fabric object
-            fabric.setFabricType(fabricType);
-            fabric.setQuantityKg(quantity);
-            fabric.setCreatedAt(date);
-            // Update in Firestore
-            showLoading(true);
-            firestoreService.updateFabric(fabric, new FirestoreService.FabricCallback() {
-                @Override
-                public void onFabricsLoaded(List<Fabric> fabrics) {}
-                @Override
-                public void onFabricAdded(Fabric fabric) {}
-                @Override
-                public void onFabricUpdated(Fabric updatedFabric) {
-                    showLoading(false);
-                    Snackbar.make(requireView(), "Fabric updated!", Snackbar.LENGTH_SHORT).show();
+                showLoading(true);
+                fabric.setFabricType(fabricType);
+                fabric.setQuantityKg(quantity);
+                try {
+                    fabric.setUpdatedAt(dateFormat.parse(dateStr));
+                } catch (Exception e) {
+                    fabric.setUpdatedAt(new java.util.Date());
                 }
-                @Override
-                public void onFabricDeleted(String fabricId) {}
-                @Override
-                public void onError(String error) {
-                    showLoading(false);
-                    Snackbar.make(requireView(), error, Snackbar.LENGTH_SHORT).show();
-                }
+                firestoreService.updateFabric(fabric, new FirestoreService.FabricCallback() {
+                    @Override public void onFabricsLoaded(List<Fabric> fabrics) {}
+                    @Override public void onFabricAdded(Fabric fabric) {}
+                    @Override public void onFabricUpdated(Fabric updatedFabric) {
+                        showLoading(false);
+                        dialog.dismiss();
+                        Toast.makeText(getContext(), "Fabric updated", Toast.LENGTH_SHORT).show();
+                        loadFabrics();
+                    }
+                    @Override public void onFabricDeleted(String fabricId) {}
+                    @Override public void onError(String error) {
+                        showLoading(false);
+                        Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
-            // Dismiss dialog if successful
-            dialog.dismiss();
         });
+        dialog.show();
     }
 
     private void showDeleteConfirmationDialog(Fabric fabric) {
@@ -397,26 +366,17 @@ public class FabricsFragment extends Fragment {
                 .setPositiveButton("Delete", (dialog, which) -> {
                     showLoading(true);
                     firestoreService.deleteFabric(fabric.getId(), new FirestoreService.FabricCallback() {
-                        @Override
-                        public void onFabricsLoaded(List<Fabric> fabrics) {}
-                        @Override
-                        public void onFabricAdded(Fabric fabric) {}
-                        @Override
-                        public void onFabricUpdated(Fabric fabric) {}
-                        @Override
-                        public void onFabricDeleted(String fabricId) {
+                        @Override public void onFabricsLoaded(List<Fabric> fabrics) {}
+                        @Override public void onFabricAdded(Fabric fabric) {}
+                        @Override public void onFabricUpdated(Fabric fabric) {}
+                        @Override public void onFabricDeleted(String fabricId) {
                             showLoading(false);
-                            if (isAdded()) {
-                                Snackbar.make(requireView(), "Fabric deleted!", Snackbar.LENGTH_SHORT).show();
-                                loadFabrics();
-                            }
+                            Toast.makeText(getContext(), "Fabric deleted", Toast.LENGTH_SHORT).show();
+                            loadFabrics();
                         }
-                        @Override
-                        public void onError(String error) {
+                        @Override public void onError(String error) {
                             showLoading(false);
-                            if (isAdded()) {
-                                Snackbar.make(requireView(), error, Snackbar.LENGTH_SHORT).show();
-                            }
+                            Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
                         }
                     });
                 })
@@ -434,11 +394,15 @@ public class FabricsFragment extends Fragment {
         textCurrent.setText("Current quantity: " + currentQuantity + " kg");
 
         final Calendar[] selectedDate = {Calendar.getInstance()};
+        final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        // Set default date to today
+        editDate.setText(dateFormat.format(selectedDate[0].getTime()));
+
         editDate.setOnClickListener(v -> {
             Calendar calendar = Calendar.getInstance();
             new DatePickerDialog(getContext(), (view, year, month, day) -> {
                 selectedDate[0].set(year, month, day);
-                String dateStr = String.format(Locale.getDefault(), "%02d-%02d-%04d", day, month+1, year);
+                String dateStr = dateFormat.format(selectedDate[0].getTime());
                 editDate.setText(dateStr);
             }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
         });

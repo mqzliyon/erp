@@ -6,7 +6,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.PopupMenu;
-import android.widget.ImageButton;
+import androidx.appcompat.widget.AppCompatImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -58,29 +58,6 @@ public class FabricsAdapter extends RecyclerView.Adapter<FabricsAdapter.FabricVi
         holder.quantityText.setText(String.format(Locale.getDefault(), "%.2f kg", fabric.getQuantityKg()));
         holder.dateText.setText(fabric.getCreatedAt() != null ? dateFormat.format(fabric.getCreatedAt()) : "");
         
-        holder.moreImage.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(v.getContext(), v);
-            popup.getMenu().add(0, 1, 0, "View");
-            popup.getMenu().add(0, 2, 1, "Update");
-            popup.getMenu().add(0, 4, 2, "Delete");
-            popup.setOnMenuItemClickListener(item -> {
-                if (menuClickListener == null) return false;
-                switch (item.getItemId()) {
-                    case 1:
-                        menuClickListener.onView(fabric);
-                        return true;
-                    case 2:
-                        menuClickListener.onEdit(fabric);
-                        return true;
-                    case 4:
-                        menuClickListener.onDelete(fabric);
-                        return true;
-                }
-                return false;
-            });
-            popup.show();
-        });
-        
         // Automatically show view on item click
         holder.itemView.setOnClickListener(v -> {
             if (menuClickListener != null) {
@@ -93,6 +70,22 @@ public class FabricsAdapter extends RecyclerView.Adapter<FabricsAdapter.FabricVi
                 menuClickListener.onTransfer(fabric);
             }
         });
+        // Handle 3-dot menu
+        holder.menuButton.setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(holder.menuButton.getContext(), holder.menuButton);
+            popup.getMenuInflater().inflate(R.menu.menu_fabric_item, popup.getMenu());
+            popup.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.action_update) {
+                    if (menuClickListener != null) menuClickListener.onEdit(fabric);
+                    return true;
+                } else if (item.getItemId() == R.id.action_delete) {
+                    if (menuClickListener != null) menuClickListener.onDelete(fabric);
+                    return true;
+                }
+                return false;
+            });
+            popup.show();
+        });
     }
 
     @Override
@@ -102,15 +95,15 @@ public class FabricsAdapter extends RecyclerView.Adapter<FabricsAdapter.FabricVi
 
     static class FabricViewHolder extends RecyclerView.ViewHolder {
         TextView typeText, quantityText, dateText;
-        ImageView moreImage;
-        ImageButton transferButton;
+        AppCompatImageButton transferButton;
+        AppCompatImageButton menuButton;
         FabricViewHolder(@NonNull View itemView) {
             super(itemView);
             typeText = itemView.findViewById(R.id.text_fabric_type);
             quantityText = itemView.findViewById(R.id.text_fabric_quantity);
             dateText = itemView.findViewById(R.id.text_fabric_date);
-            moreImage = itemView.findViewById(R.id.image_more);
             transferButton = itemView.findViewById(R.id.button_transfer);
+            menuButton = itemView.findViewById(R.id.button_menu);
         }
     }
 } 

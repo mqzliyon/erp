@@ -36,8 +36,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Dashboard Fragment with date-filterable charts and summary cards
@@ -79,6 +81,12 @@ public class DashboardFragment extends Fragment implements
         
         setupViews();
         setupCharts();
+        loadData();
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
         loadData();
     }
     
@@ -208,12 +216,17 @@ public class DashboardFragment extends Fragment implements
         
         // Calculate totals
         double totalFabricKg = filteredFabrics.stream().mapToDouble(Fabric::getQuantityKg).sum();
-        double totalCuttingKg = filteredCuttings.stream().mapToDouble(Cutting::getQuantityKg).sum();
+        double totalCuttingPcs = filteredCuttings.stream().mapToDouble(c -> c.getQuantityPcs() > 0 ? c.getQuantityPcs() : 0).sum();
+        double totalCuttingKg = filteredCuttings.stream().mapToDouble(c -> c.getQuantityPcs() > 0 ? 0 : c.getQuantityKg()).sum();
         int totalLots = filteredLots.size();
         
         // Update UI
         binding.tvFabricTotal.setText(String.format(Locale.getDefault(), "%.1f KG", totalFabricKg));
-        binding.tvCuttingTotal.setText(String.format(Locale.getDefault(), "%.1f KG", totalCuttingKg));
+        if (totalCuttingPcs > 0) {
+            binding.tvCuttingTotal.setText(String.format(Locale.getDefault(), "%.0f PCS", totalCuttingPcs));
+        } else {
+            binding.tvCuttingTotal.setText(String.format(Locale.getDefault(), "%.1f KG", totalCuttingKg));
+        }
         binding.tvLotsTotal.setText(String.valueOf(totalLots));
         
         // Update charts
@@ -234,29 +247,33 @@ public class DashboardFragment extends Fragment implements
      */
     private void updateFabricChart(List<Fabric> fabrics) {
         if (binding == null) return;
-        
+
+        // Group fabrics by type and sum their quantities
+        Map<String, Float> typeTotals = new LinkedHashMap<>();
+        for (Fabric fabric : fabrics) {
+            String type = fabric.getFabricType() != null ? fabric.getFabricType() : "Unknown";
+            float qty = (float) fabric.getQuantityKg();
+            typeTotals.put(type, typeTotals.getOrDefault(type, 0f) + qty);
+        }
+
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
-        
-        // Group fabrics by type
-        // This is a simplified implementation
-        entries.add(new BarEntry(0, 100f));
-        entries.add(new BarEntry(1, 150f));
-        entries.add(new BarEntry(2, 80f));
-        
-        labels.add("Cotton");
-        labels.add("Polyester");
-        labels.add("Silk");
-        
+        int index = 0;
+        for (Map.Entry<String, Float> entry : typeTotals.entrySet()) {
+            entries.add(new BarEntry(index, entry.getValue()));
+            labels.add(entry.getKey());
+            index++;
+        }
+
         BarDataSet dataSet = new BarDataSet(entries, "Fabric Types");
+        // Use a default color set, or you can customize as needed
         dataSet.setColors(Color.rgb(64, 89, 128), Color.rgb(149, 165, 124), Color.rgb(217, 184, 162));
-        
         BarData barData = new BarData(dataSet);
         binding.chartFabrics.setData(barData);
-        
+
         XAxis xAxis = binding.chartFabrics.getXAxis();
         xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
-        
+
         binding.chartFabrics.invalidate();
     }
     
@@ -389,5 +406,9 @@ public class DashboardFragment extends Fragment implements
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    public void reloadDashboardData() {
+        loadData();
     }
 } 

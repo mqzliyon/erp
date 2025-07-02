@@ -32,6 +32,11 @@ import com.dazzling.erp.ui.auth.LoginActivity;
 import com.google.android.material.snackbar.Snackbar;
 import com.airbnb.lottie.LottieAnimationView;
 
+import android.os.StrictMode;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.appbar.MaterialToolbar;
+
 /**
  * Main Activity for the ERP application
  * Handles navigation, authentication, and theme switching
@@ -51,6 +56,8 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Force light mode
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         
         try {
@@ -69,12 +76,29 @@ public class MainActivity extends AppCompatActivity implements
             authService = new FirebaseAuthService();
             authService.setAuthCallback(this);
             
-            // Setup toolbar
-            // setSupportActionBar(binding.toolbar); // Removed: no toolbar in layout
-            binding.topTitle.setText("ERP Dashboard");
+            // Setup MaterialToolbar
+            MaterialToolbar toolbar = findViewById(R.id.top_app_bar);
+            setSupportActionBar(toolbar);
             
-            // Setup custom bottom menu listeners
-            setupBottomMenu();
+            // Setup BottomNavigationView
+            BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);
+            bottomNav.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_dashboard) {
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                    return true;
+                } else if (id == R.id.nav_fabrics) {
+                    loadFragment(new FabricsFragment(), "Fabrics Management");
+                    return true;
+                } else if (id == R.id.nav_cutting) {
+                    loadFragment(new CuttingFragment(), "Cutting Operations");
+                    return true;
+                } else if (id == R.id.nav_lots) {
+                    loadFragment(new LotsFragment(), "Lot Management");
+                    return true;
+                }
+                return false;
+            });
             
             isInitialized = true;
             
@@ -87,11 +111,19 @@ public class MainActivity extends AppCompatActivity implements
             
             // Load default fragment
             loadFragment(new DashboardFragment(), "Dashboard");
-            highlightMenuItem(R.id.menu_dashboard);
             
             // Initialize global loader
             lottieLoading = findViewById(R.id.lottie_loading);
             showGlobalLoader(false); // Hide by default
+            
+            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .build());
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
+                .build());
             
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
@@ -112,66 +144,6 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     /**
-     * Setup custom bottom menu listeners
-     */
-    private void setupBottomMenu() {
-        findViewById(R.id.menu_dashboard).setOnClickListener(v -> {
-            if (!canClick()) return;
-            loadFragment(new DashboardFragment(), "Dashboard");
-            highlightMenuItem(R.id.menu_dashboard);
-        });
-        findViewById(R.id.menu_fabrics).setOnClickListener(v -> {
-            if (!canClick()) return;
-            loadFragment(new FabricsFragment(), "Fabrics Management");
-            highlightMenuItem(R.id.menu_fabrics);
-        });
-        findViewById(R.id.menu_cutting).setOnClickListener(v -> {
-            if (!canClick()) return;
-            loadFragment(new CuttingFragment(), "Cutting Operations");
-            highlightMenuItem(R.id.menu_cutting);
-        });
-        findViewById(R.id.menu_lots).setOnClickListener(v -> {
-            if (!canClick()) return;
-            loadFragment(new LotsFragment(), "Lot Management");
-            highlightMenuItem(R.id.menu_lots);
-        });
-    }
-    
-    /**
-     * Highlight selected menu item
-     */
-    private void highlightMenuItem(int selectedId) {
-        int[] menuIds = {R.id.menu_dashboard, R.id.menu_fabrics, R.id.menu_cutting, R.id.menu_lots};
-        int[] iconIds = {R.id.icon_dashboard, R.id.icon_fabrics, R.id.icon_cutting, R.id.icon_lots};
-        int[] labelIds = {R.id.label_dashboard, R.id.label_fabrics, R.id.label_cutting, R.id.label_lots};
-        for (int i = 0; i < menuIds.length; i++) {
-            LinearLayout menuItem = findViewById(menuIds[i]);
-            ImageView icon = findViewById(iconIds[i]);
-            TextView label = findViewById(labelIds[i]);
-            boolean selected = (menuIds[i] == selectedId);
-            if (menuItem != null) {
-                menuItem.setBackgroundResource(selected ? R.drawable.menu_item_selected_bg : android.R.color.transparent);
-            }
-            if (icon != null) {
-                int color = getResources().getColor(R.color.icon_nav);
-                icon.setColorFilter(color);
-            }
-            if (label != null) {
-                if (selected) {
-                    label.setAlpha(0f);
-                    label.setVisibility(View.VISIBLE);
-                    label.animate().alpha(1f).setDuration(150).start();
-                    label.setTypeface(null, android.graphics.Typeface.BOLD);
-                } else {
-                    label.animate().alpha(0f).setDuration(100).withEndAction(() -> label.setVisibility(View.GONE)).start();
-                    label.setTypeface(null, android.graphics.Typeface.NORMAL);
-                }
-                label.setTextColor(getResources().getColor(R.color.black));
-            }
-        }
-    }
-    
-    /**
      * Load fragment with title
      */
     private void loadFragment(Fragment fragment, String title) {
@@ -179,18 +151,23 @@ public class MainActivity extends AppCompatActivity implements
         // Avoid reloading the same fragment
         if (currentFragment != null && currentFragment.getClass().equals(fragment.getClass())) {
             if (title != null && !title.isEmpty()) {
-                binding.topTitle.setText(title);
+                if (getSupportActionBar() != null) {
+                    getSupportActionBar().setTitle(title);
+                }
             }
             return;
         }
         try {
             FragmentManager fragmentManager = getSupportFragmentManager();
             fragmentManager.beginTransaction()
+                .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                 .replace(R.id.fragment_container, fragment)
-                .commitNowAllowingStateLoss(); // Instant, no lag
+                .commit();
             currentFragment = fragment;
             if (title != null && !title.isEmpty()) {
-                binding.topTitle.setText(title);
+                if (getSupportActionBar() != null) {
+                    getSupportActionBar().setTitle(title);
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error loading fragment", e);
@@ -242,65 +219,6 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int itemId = item.getItemId();
-        
-        if (itemId == R.id.action_toggle_theme) {
-            toggleTheme();
-            return true;
-        } else if (itemId == R.id.action_profile) {
-            showProfile();
-            return true;
-        } else if (itemId == R.id.action_settings) {
-            showSettings();
-            return true;
-        }
-        
-        return super.onOptionsItemSelected(item);
-    }
-    
-    /**
-     * Toggle between light and dark theme
-     */
-    private void toggleTheme() {
-        int currentMode = AppCompatDelegate.getDefaultNightMode();
-        int newMode = (currentMode == AppCompatDelegate.MODE_NIGHT_YES) 
-                ? AppCompatDelegate.MODE_NIGHT_NO 
-                : AppCompatDelegate.MODE_NIGHT_YES;
-        
-        AppCompatDelegate.setDefaultNightMode(newMode);
-        
-        String themeName = (newMode == AppCompatDelegate.MODE_NIGHT_YES) ? "Dark" : "Light";
-        Snackbar.make(binding.getRoot(), "Switched to " + themeName + " theme", 
-                Snackbar.LENGTH_SHORT).show();
-    }
-    
-    /**
-     * Show user profile
-     */
-    private void showProfile() {
-        if (currentUser != null) {
-            String message = "User: " + currentUser.getDisplayName() + 
-                    "\nRole: " + currentUser.getRole() + 
-                    "\nDepartment: " + currentUser.getDepartment();
-            Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
-        }
-    }
-    
-    /**
-     * Show settings
-     */
-    private void showSettings() {
-        Snackbar.make(binding.getRoot(), "Settings coming soon!", Snackbar.LENGTH_SHORT).show();
-    }
-    
-    @Override
     public void onBackPressed() {
         // Since drawer is always open, just handle normal back press
         super.onBackPressed();
@@ -334,6 +252,10 @@ public class MainActivity extends AppCompatActivity implements
     public void onAuthSuccess(User user) {
         Log.d(TAG, "onAuthSuccess: User authenticated successfully");
         this.currentUser = user;
+        Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
+            ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+        }
         // Hide loading indicator
         showGlobalLoader(false);
         updateNavigationHeader(user);
@@ -342,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements
         startBackgroundService();
         
         // Set default navigation item
-        highlightMenuItem(R.id.menu_dashboard);
+        loadFragment(new DashboardFragment(), "Dashboard");
         // Load default dashboard fragment only after successful authentication
         loadFragment(new DashboardFragment(), "Dashboard");
     }
@@ -368,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements
         updateNavigationHeader(user);
         Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
         // Set default navigation item
-        highlightMenuItem(R.id.menu_dashboard);
+        loadFragment(new DashboardFragment(), "Dashboard");
         // Load default dashboard fragment only after successful authentication
         loadFragment(new DashboardFragment(), "Dashboard");
     }
@@ -377,11 +299,15 @@ public class MainActivity extends AppCompatActivity implements
     public void onUserFetched(User user) {
         Log.d(TAG, "onUserFetched: User data fetched successfully");
         this.currentUser = user;
+        Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
+            ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+        }
         // Hide loading indicator
         showGlobalLoader(false);
         updateNavigationHeader(user);
         // Set default navigation item
-        highlightMenuItem(R.id.menu_dashboard);
+        loadFragment(new DashboardFragment(), "Dashboard");
         // Load default dashboard fragment only after successful authentication
         loadFragment(new DashboardFragment(), "Dashboard");
     }
@@ -390,14 +316,12 @@ public class MainActivity extends AppCompatActivity implements
      * Update navigation header with user info
      */
     private void updateNavigationHeader(User user) {
-        // Since we no longer have a NavigationView, we can update the toolbar title
-        // or show user info in a different way if needed
-        if (user != null && binding.topTitle != null) {
+        if (user != null && getSupportActionBar() != null) {
             String displayName = user.getDisplayName();
             if (displayName != null && !displayName.isEmpty()) {
-                binding.topTitle.setText(displayName + " - ERP");
+                getSupportActionBar().setTitle(displayName + " - ERP");
             } else {
-                binding.topTitle.setText("ERP System");
+                getSupportActionBar().setTitle("ERP System");
             }
         }
     }

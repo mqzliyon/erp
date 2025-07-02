@@ -1,93 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".MainActivity"
-    android:background="@color/background_section">
+    android:background="@color/background_section"
+    android:fitsSystemWindows="true">
 
-    <!-- Custom Top App Bar -->
-    <LinearLayout
+    <!-- Top App Bar -->
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/top_app_bar"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:orientation="horizontal"
-        android:background="@color/background_section"
-        android:gravity="center_vertical"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@color/white"
+        app:title="@string/app_name"
+        app:titleTextColor="#231F20"
+        app:navigationIcon="@drawable/ic_menu"
+        app:contentInsetStartWithNavigation="24dp"
+        app:contentInsetEndWithActions="24dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:elevation="4dp"
-        android:clipToOutline="true"
-        android:layout_marginBottom="2dp"
-        android:backgroundTint="@color/white"
-        android:backgroundTintMode="src_in">
-
-        <!-- Menu Icon -->
-        <ImageView
-            android:id="@+id/icon_menu"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:src="@drawable/ic_menu"
-            android:tint="#231F20"
-            android:contentDescription="Menu" />
-
-        <Space
-            android:layout_width="16dp"
-            android:layout_height="0dp" />
-
-        <!-- Centered Title -->
-        <TextView
-            android:id="@+id/top_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Dashboard"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:gravity="center"
-            android:textColor="#231F20" />
-
-        <!-- Info Icon -->
-        <ImageView
-            android:id="@+id/icon_info"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_info"
-            android:tint="#231F20"
-            android:contentDescription="Info"
-            android:layout_marginEnd="16dp" />
-
-        <!-- Notification Icon with Red Dot -->
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-            <ImageView
-                android:id="@+id/icon_notification"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_notifications"
-                android:tint="#231F20"
-                android:contentDescription="Notifications" />
-            <View
-                android:id="@+id/notification_dot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:background="@drawable/bg_notification_dot"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="2dp"
-                android:layout_marginEnd="2dp" />
-        </FrameLayout>
-    </LinearLayout>
-    <!-- End Custom Top App Bar -->
+        app:titleCentered="true"
+        android:gravity="center"
+        android:elevation="4dp" />
 
     <!-- Main Content Area -->
     <FrameLayout
         android:id="@+id/fragment_container"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
+        app:layout_constraintTop_toBottomOf="@id/top_app_bar"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:background="@color/background_section">
 
         <!-- Loading Indicator -->
@@ -105,125 +54,19 @@
 
     </FrameLayout>
 
-    <!-- Custom Horizontal Drawer Menu at Bottom -->
-    <!-- light lavender -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav_view"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/background_section"
-        android:fillViewport="true">
-        <LinearLayout
-            android:id="@+id/bottom_menu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@color/background_section">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:menu="@menu/bottom_navigation_menu"
+        app:labelVisibilityMode="labeled"
+        app:itemIconTint="@color/nav_item_color"
+        app:itemTextColor="@color/nav_item_color"
+        android:background="@color/white"
+        android:elevation="8dp" />
 
-            <!-- Dashboard -->
-            <LinearLayout
-                android:id="@+id/menu_dashboard"
-                android:layout_width="0dp"
-                android:layout_height="64dp"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="8dp">
-                <ImageView
-                    android:id="@+id/icon_dashboard"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_dashboard"
-                    android:tint="#231F20" />
-                <TextView
-                    android:id="@+id/label_dashboard"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Dashboard"
-                    android:textStyle="bold"
-                    android:textColor="#231F20"
-                    android:visibility="visible"
-                    android:textSize="16sp"/>
-            </LinearLayout>
-
-            <!-- Fabrics -->
-            <LinearLayout
-                android:id="@+id/menu_fabrics"
-                android:layout_width="0dp"
-                android:layout_height="64dp"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="8dp">
-                <ImageView
-                    android:id="@+id/icon_fabrics"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_fabric"
-                    android:tint="#231F20" />
-                <TextView
-                    android:id="@+id/label_fabrics"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Fabrics"
-                    android:textStyle="bold"
-                    android:textColor="#231F20"
-                    android:visibility="gone"
-                    android:textSize="16sp"/>
-            </LinearLayout>
-
-            <!-- Cutting -->
-            <LinearLayout
-                android:id="@+id/menu_cutting"
-                android:layout_width="0dp"
-                android:layout_height="64dp"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="8dp">
-                <ImageView
-                    android:id="@+id/icon_cutting"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_cutting"
-                    android:tint="#231F20" />
-                <TextView
-                    android:id="@+id/label_cutting"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Cutting"
-                    android:textStyle="bold"
-                    android:textColor="#231F20"
-                    android:visibility="gone"
-                    android:textSize="16sp"/>
-            </LinearLayout>
-
-            <!-- Lots -->
-            <LinearLayout
-                android:id="@+id/menu_lots"
-                android:layout_width="0dp"
-                android:layout_height="64dp"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:padding="8dp">
-                <ImageView
-                    android:id="@+id/icon_lots"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_lot"
-                    android:tint="#231F20" />
-                <TextView
-                    android:id="@+id/label_lots"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lots"
-                    android:textStyle="bold"
-                    android:textColor="#231F20"
-                    android:visibility="gone"
-                    android:textSize="16sp"/>
-            </LinearLayout>
-        </LinearLayout>
-    </HorizontalScrollView>
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

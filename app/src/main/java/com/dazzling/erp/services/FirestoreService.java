@@ -535,4 +535,23 @@ public class FirestoreService {
                 }
             });
     }
+
+    /**
+     * Update cutting operation (ALWAYS call this after any in-memory change to pcs/kg/originalQuantityKg)
+     */
+    public void updateCutting(Cutting cutting, CuttingCallback callback) {
+        if (cutting.getId() == null) {
+            if (callback != null) callback.onError("Cutting ID is null");
+            return;
+        }
+        mFirestore.collection(COLLECTION_CUTTING)
+            .document(cutting.getId())
+            .set(cutting)
+            .addOnSuccessListener(aVoid -> {
+                if (callback != null) callback.onCuttingUpdated(cutting);
+            })
+            .addOnFailureListener(e -> {
+                if (callback != null) callback.onError(e.getMessage());
+            });
+    }
 } 

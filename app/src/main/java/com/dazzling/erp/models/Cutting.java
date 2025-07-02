@@ -15,6 +15,8 @@ public class Cutting {
     private String fabricType;
     private String color;
     private double quantityKg;
+    private double quantityPcs; // NEW: quantity in pieces
+    private Double originalQuantityKg; // NEW: original kg at conversion (nullable)
     private String cuttingType; // manual, machine
     private String operator;
     private String machineId;
@@ -67,6 +69,12 @@ public class Cutting {
 
     public double getQuantityKg() { return quantityKg; }
     public void setQuantityKg(double quantityKg) { this.quantityKg = quantityKg; }
+
+    public double getQuantityPcs() { return quantityPcs; }
+    public void setQuantityPcs(double quantityPcs) { this.quantityPcs = quantityPcs; }
+
+    public Double getOriginalQuantityKg() { return originalQuantityKg; }
+    public void setOriginalQuantityKg(Double originalQuantityKg) { this.originalQuantityKg = originalQuantityKg; }
 
     public String getCuttingType() { return cuttingType; }
     public void setCuttingType(String cuttingType) { this.cuttingType = cuttingType; }
