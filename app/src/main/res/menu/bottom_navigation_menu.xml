@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/ic_dashboard"
+        android:title="Dashboard" />
+    
+    <item
+        android:id="@+id/nav_fabrics"
+        android:icon="@drawable/ic_fabric"
+        android:title="Fabrics" />
+    
+    <item
+        android:id="@+id/nav_cutting"
+        android:icon="@drawable/ic_cutting"
+        android:title="Cutting" />
+    
+    <item
+        android:id="@+id/nav_lots"
+        android:icon="@drawable/ic_lot"
+        android:title="Lots" />
+    
+</menu> 

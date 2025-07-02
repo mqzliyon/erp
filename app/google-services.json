@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431270319803",
+    "project_id": "erp-main-21212",
+    "storage_bucket": "erp-main-21212.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431270319803:android:6a4efa5512884f19b3fb9e",
+        "android_client_info": {
+          "package_name": "com.dazzling.erp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRRDGkaZjqvHd79HRajKwXRCZLStgEeSI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
