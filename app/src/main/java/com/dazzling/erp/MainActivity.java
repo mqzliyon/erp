@@ -30,6 +30,7 @@ import com.dazzling.erp.services.FirebaseAuthService;
 import com.dazzling.erp.ui.auth.LoginActivity;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.airbnb.lottie.LottieAnimationView;
 
 /**
  * Main Activity for the ERP application
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements
     private Fragment currentFragment = null;
     private long lastClickTime = 0;
     private static final long CLICK_DEBOUNCE_MS = 250;
+    private LottieAnimationView lottieLoading;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +88,10 @@ public class MainActivity extends AppCompatActivity implements
             // Load default fragment
             loadFragment(new DashboardFragment(), "Dashboard");
             highlightMenuItem(R.id.menu_dashboard);
+            
+            // Initialize global loader
+            lottieLoading = findViewById(R.id.lottie_loading);
+            showGlobalLoader(false); // Hide by default
             
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
@@ -205,9 +211,7 @@ public class MainActivity extends AppCompatActivity implements
             if (!authService.isUserSignedIn()) {
                 Log.d(TAG, "User not authenticated, redirecting to LoginActivity");
                 // Hide loading indicator
-                if (binding != null && binding.loadingIndicator != null) {
-                    binding.loadingIndicator.setVisibility(View.GONE);
-                }
+                showGlobalLoader(false);
                 // User not authenticated, redirect to login
                 Intent intent = new Intent(this, LoginActivity.class);
                 startActivity(intent);
@@ -221,9 +225,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else {
                     Log.w(TAG, "User ID is null despite being signed in");
                     // Hide loading indicator
-                    if (binding != null && binding.loadingIndicator != null) {
-                        binding.loadingIndicator.setVisibility(View.GONE);
-                    }
+                    showGlobalLoader(false);
                     // Fallback: redirect to login
                     Intent intent = new Intent(this, LoginActivity.class);
                     startActivity(intent);
@@ -333,9 +335,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onAuthSuccess: User authenticated successfully");
         this.currentUser = user;
         // Hide loading indicator
-        if (binding != null && binding.loadingIndicator != null) {
-            binding.loadingIndicator.setVisibility(View.GONE);
-        }
+        showGlobalLoader(false);
         updateNavigationHeader(user);
         
         // Start background service to prevent process killing
@@ -351,9 +351,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onAuthFailure(String error) {
         Log.e(TAG, "onAuthFailure: " + error);
         // Hide loading indicator
-        if (binding != null && binding.loadingIndicator != null) {
-            binding.loadingIndicator.setVisibility(View.GONE);
-        }
+        showGlobalLoader(false);
         Toast.makeText(this, "Authentication error: " + error, Toast.LENGTH_LONG).show();
         // Redirect to login
         Intent intent = new Intent(this, LoginActivity.class);
@@ -366,9 +364,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onUserCreated: New user created");
         this.currentUser = user;
         // Hide loading indicator
-        if (binding != null && binding.loadingIndicator != null) {
-            binding.loadingIndicator.setVisibility(View.GONE);
-        }
+        showGlobalLoader(false);
         updateNavigationHeader(user);
         Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
         // Set default navigation item
@@ -382,9 +378,7 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onUserFetched: User data fetched successfully");
         this.currentUser = user;
         // Hide loading indicator
-        if (binding != null && binding.loadingIndicator != null) {
-            binding.loadingIndicator.setVisibility(View.GONE);
-        }
+        showGlobalLoader(false);
         updateNavigationHeader(user);
         // Set default navigation item
         highlightMenuItem(R.id.menu_dashboard);
@@ -466,5 +460,20 @@ public class MainActivity extends AppCompatActivity implements
         if (now - lastClickTime < CLICK_DEBOUNCE_MS) return false;
         lastClickTime = now;
         return true;
+    }
+
+    /**
+     * Show or hide the global Lottie loader. Fragments can call ((MainActivity) requireActivity()).showGlobalLoader(true/false)
+     */
+    public void showGlobalLoader(boolean show) {
+        if (lottieLoading == null) return;
+        if (show) {
+            lottieLoading.setVisibility(View.VISIBLE);
+            lottieLoading.playAnimation();
+        } else {
+            lottieLoading.cancelAnimation();
+            lottieLoading.setVisibility(View.GONE);
+            lottieLoading.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        }
     }
 }

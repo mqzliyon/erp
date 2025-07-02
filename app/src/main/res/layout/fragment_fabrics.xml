@@ -31,4 +31,16 @@
         android:contentDescription="Add Fabric"
         app:srcCompat="@drawable/ic_fabric" />
 
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottie_loading"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:lottie_fileName="loader.json"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true"
+        app:lottie_speed="3"
+        android:background="@android:color/darker_gray"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 

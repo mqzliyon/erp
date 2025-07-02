@@ -91,12 +91,17 @@
         android:background="@color/background_section">
 
         <!-- Loading Indicator -->
-        <ProgressBar
-            android:id="@+id/loading_indicator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottie_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:visibility="visible" />
+            android:visibility="gone"
+            app:lottie_fileName="loader.json"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            app:lottie_speed="3"
+            android:background="@android:color/transparent"/>
 
     </FrameLayout>
 

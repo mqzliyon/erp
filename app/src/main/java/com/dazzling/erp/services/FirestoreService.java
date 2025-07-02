@@ -54,6 +54,8 @@ public class FirestoreService {
      * Add new fabric
      */
     public void addFabric(Fabric fabric, FabricCallback callback) {
+        fabric.setCreatedAt(new Date());
+        fabric.setUpdatedAt(new Date());
         mFirestore.collection(COLLECTION_FABRICS)
                 .add(fabric)
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
@@ -264,6 +266,24 @@ public class FirestoreService {
                 });
     }
     
+    // Cutting: Delete cutting entry by ID
+    public void deleteCutting(String cuttingId, CuttingCallback callback) {
+        mFirestore.collection(COLLECTION_CUTTING).document(cuttingId)
+            .delete()
+            .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "Cutting deleted successfully");
+                if (callback != null) {
+                    callback.onCuttingDeleted(cuttingId);
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.w(TAG, "Error deleting cutting", e);
+                if (callback != null) {
+                    callback.onError("Failed to delete cutting: " + e.getMessage());
+                }
+            });
+    }
+    
     // ==================== LOT OPERATIONS ====================
     
     public interface LotCallback {
@@ -455,5 +475,64 @@ public class FirestoreService {
                         }
                     }
                 });
+    }
+
+    // Fabric: Return quantity to fabric by type, color, and lotNumber
+    public void returnQuantityToFabric(String fabricType, String color, String lotNumber, double qty, FabricCallback callback) {
+        Log.d(TAG, "Attempting to return quantity to fabric: type=" + fabricType + ", color=" + color + ", lotNumber=" + lotNumber + ", qty=" + qty);
+        mFirestore.collection(COLLECTION_FABRICS)
+            .whereEqualTo("fabricType", fabricType)
+            .whereEqualTo("color", color)
+            .whereEqualTo("lotNumber", lotNumber)
+            .limit(1)
+            .get()
+            .addOnSuccessListener(queryDocumentSnapshots -> {
+                if (!queryDocumentSnapshots.isEmpty()) {
+                    DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
+                    Fabric fabric = document.toObject(Fabric.class);
+                    if (fabric != null) {
+                        fabric.setId(document.getId());
+                        double newQty = fabric.getQuantityKg() + qty;
+                        Log.d(TAG, "Found fabric (id=" + fabric.getId() + ") oldQty=" + fabric.getQuantityKg() + ", newQty=" + newQty);
+                        fabric.setQuantityKg(newQty);
+                        fabric.setUpdatedAt(new java.util.Date());
+                        // Add a return entry to transferHistory
+                        List<com.dazzling.erp.models.Transfer> history = fabric.getTransferHistory();
+                        if (history == null) history = new java.util.ArrayList<>();
+                        history.add(new com.dazzling.erp.models.Transfer(qty, new java.util.Date(), "Return"));
+                        fabric.setTransferHistory(history);
+                        mFirestore.collection(COLLECTION_FABRICS).document(fabric.getId())
+                            .set(fabric)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Fabric quantity returned successfully");
+                                if (callback != null) {
+                                    callback.onFabricUpdated(fabric);
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.w(TAG, "Error updating fabric quantity", e);
+                                if (callback != null) {
+                                    callback.onError("Failed to update fabric: " + e.getMessage());
+                                }
+                            });
+                    } else {
+                        Log.e(TAG, "Fabric found but could not be converted to object");
+                        if (callback != null) {
+                            callback.onError("Fabric not found");
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "No fabric found for type=" + fabricType + ", color=" + color + ", lotNumber=" + lotNumber);
+                    if (callback != null) {
+                        callback.onError("Fabric not found");
+                    }
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.w(TAG, "Error finding fabric", e);
+                if (callback != null) {
+                    callback.onError("Failed to find fabric: " + e.getMessage());
+                }
+            });
     }
 } 

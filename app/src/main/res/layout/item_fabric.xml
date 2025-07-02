@@ -73,15 +73,30 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 3-dot icon -->
-        <ImageView
-            android:id="@+id/image_more"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_more_vert"
-            android:contentDescription="More options"
-            android:background="@android:color/transparent"
-            android:layout_marginStart="12dp" />
+        <!-- 3-dot icon and Transfer For Cutting button -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical">
+
+            <ImageButton
+                android:id="@+id/button_transfer"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_transfer"
+                android:contentDescription="Transfer For Cutting"
+                android:background="@android:color/transparent"
+                android:layout_marginEnd="8dp"/>
+
+            <ImageView
+                android:id="@+id/image_more"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_more_vert"
+                android:contentDescription="More options"
+                android:background="@android:color/transparent"/>
+        </LinearLayout>
 
     </LinearLayout>
 

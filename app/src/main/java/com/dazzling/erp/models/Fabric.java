@@ -4,6 +4,8 @@ import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.ServerTimestamp;
 
 import java.util.Date;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Fabric model for tracking fabric inventory in KG units
@@ -26,6 +28,13 @@ public class Fabric {
     private Date createdAt;
     
     private Date updatedAt;
+
+    private String displayName;
+
+    private Double lastTransferQuantity;
+    private Date lastTransferDate;
+
+    private List<Transfer> transferHistory = new ArrayList<>();
 
     // Required empty constructor for Firestore
     public Fabric() {}
@@ -86,7 +95,15 @@ public class Fabric {
     public Date getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
 
-    public String getDisplayName() {
-        return fabricType + " - " + color + " (" + quantityKg + " KG)";
-    }
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+
+    public Double getLastTransferQuantity() { return lastTransferQuantity; }
+    public void setLastTransferQuantity(Double qty) { this.lastTransferQuantity = qty; }
+
+    public Date getLastTransferDate() { return lastTransferDate; }
+    public void setLastTransferDate(Date date) { this.lastTransferDate = date; }
+
+    public List<Transfer> getTransferHistory() { return transferHistory; }
+    public void setTransferHistory(List<Transfer> transferHistory) { this.transferHistory = transferHistory; }
 } 
