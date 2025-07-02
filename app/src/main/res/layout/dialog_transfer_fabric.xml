@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <EditText
+        android:id="@+id/edit_transfer_quantity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Transfer Quantity (kg)"
+        android:inputType="numberDecimal"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/text_current_quantity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Current quantity: 0 kg"
+        android:textColor="@android:color/holo_red_dark"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/edit_transfer_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Date"
+        android:focusable="false"
+        android:clickable="true"
+        android:inputType="none"/>
+
+</LinearLayout> 
