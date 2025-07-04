@@ -46,6 +46,7 @@ public class LotsFragment extends Fragment {
     private List<Lot> lotsList;
     private FirestoreService firestoreService;
     private LotsAdapter lotsAdapter;
+    private Dialog loadingDialog;
 
     @Nullable
     @Override
@@ -73,6 +74,47 @@ public class LotsFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         lotsAdapter = new LotsAdapter(lotsList);
         recyclerView.setAdapter(lotsAdapter);
+
+        lotsAdapter.setOnLotMenuClickListener(new LotsAdapter.OnLotMenuClickListener() {
+            @Override
+            public void onView(Lot lot) {}
+            @Override
+            public void onEdit(Lot lot) {}
+            @Override
+            public void onDelete(Lot lot) {
+                new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Lot")
+                    .setMessage("Are you sure you want to delete this lot?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        showLoadingDialog();
+                        firestoreService.deleteLot(lot.getId(), new FirestoreService.LotCallback() {
+                            @Override
+                            public void onLotsLoaded(List<Lot> lots) {}
+                            @Override
+                            public void onLotAdded(Lot lot) {}
+                            @Override
+                            public void onLotUpdated(Lot lot) {}
+                            @Override
+                            public void onLotDeleted(String lotId) {
+                                hideLoadingDialog();
+                                showSuccessAlert("Lot deleted successfully!");
+                                loadLots();
+                            }
+                            @Override
+                            public void onError(String error) {
+                                hideLoadingDialog();
+                                new android.app.AlertDialog.Builder(requireContext())
+                                    .setTitle("Error")
+                                    .setMessage("Failed to delete lot: " + error)
+                                    .setPositiveButton("OK", null)
+                                    .show();
+                            }
+                        });
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
+            }
+        });
     }
 
     private void setupListeners() {
@@ -85,12 +127,30 @@ public class LotsFragment extends Fragment {
         dialog.setContentView(R.layout.dialog_add_lot);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
+        // Get dialog root view and input fields
+        View dialogRoot = dialog.findViewById(R.id.dialog_root);
         EditText editLotNumber = dialog.findViewById(R.id.edit_lot_number);
         EditText editLotDate = dialog.findViewById(R.id.edit_lot_date);
-        TextView textLotNumberError = dialog.findViewById(R.id.text_lot_number_error);
-        Button buttonCreateLot = dialog.findViewById(R.id.button_create_lot);
+        Button buttonAdd = dialog.findViewById(R.id.button_add);
+        Button buttonCancel = dialog.findViewById(R.id.button_cancel);
 
-        // Set current date if empty
+        // Colors for background change
+        int highlightColor = Color.parseColor("#dad5d4");
+        int defaultColor = Color.WHITE; // or whatever your normal background is
+
+        // Focus change listener (only dialog background)
+        View.OnFocusChangeListener focusListener = (v, hasFocus) -> {
+            if (hasFocus) {
+                dialogRoot.setBackgroundColor(highlightColor);
+            } else if (!editLotNumber.hasFocus() && !editLotDate.hasFocus()) {
+                dialogRoot.setBackgroundColor(defaultColor);
+            }
+        };
+
+        // Set focus listeners
+        editLotNumber.setOnFocusChangeListener(focusListener);
+        editLotDate.setOnFocusChangeListener(focusListener);
+
         java.util.Calendar calendar = java.util.Calendar.getInstance();
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
         String currentDate = sdf.format(calendar.getTime());
@@ -108,57 +168,42 @@ public class LotsFragment extends Fragment {
             datePickerDialog.show();
         });
 
-        buttonCreateLot.setOnClickListener(v -> {
+        buttonAdd.setOnClickListener(v -> {
             String lotNumber = editLotNumber.getText().toString().trim();
             String lotDate = editLotDate.getText().toString().trim();
-            textLotNumberError.setVisibility(View.GONE);
+            
             if (lotNumber.isEmpty()) {
-                textLotNumberError.setText("Lot number is required");
-                textLotNumberError.setVisibility(View.VISIBLE);
+                editLotNumber.setError("Please enter lot number");
                 return;
             }
-            // Check uniqueness
-            boolean exists = false;
-            for (Lot lot : lotsList) {
-                if (lot.getLotNumber().equalsIgnoreCase("Lot-" + lotNumber)) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (exists) {
-                textLotNumberError.setText("This lot number is already used.");
-                textLotNumberError.setTextColor(Color.RED);
-                textLotNumberError.setVisibility(View.VISIBLE);
-                return;
-            }
-            if (lotDate.isEmpty()) lotDate = currentDate;
-            // Show loading animation
-            Dialog loadingDialog = new Dialog(requireContext());
-            loadingDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-            loadingDialog.setContentView(R.layout.dialog_loading_lottie);
-            loadingDialog.setCancelable(false);
-            loadingDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            LottieAnimationView lottie = loadingDialog.findViewById(R.id.lottie_loader);
-            lottie.setAnimation("loader.json");
-            lottie.playAnimation();
-            loadingDialog.show();
-            // Create Lot object
-            Lot newLot = new Lot();
-            newLot.setLotNumber("Lot-" + lotNumber);
+            
+            // Prepend 'Lot-' to the lot number
+            final String finalLotNumber = "Lot-" + lotNumber;
+            
+            // Parse date string to Date object
+            final java.util.Date parsedDate;
             try {
-                newLot.setCreatedAt(sdf.parse(lotDate));
+                parsedDate = sdf.parse(lotDate);
             } catch (Exception e) {
-                newLot.setCreatedAt(calendar.getTime());
+                editLotDate.setError("Invalid date");
+                return;
             }
+            
+            showLoadingDialog();
+            // Directly add the lot without duplicate validation
+            Lot newLot = new Lot();
+            newLot.setLotNumber(finalLotNumber);
+            newLot.setOrderDate(parsedDate);
             firestoreService.addLot(newLot, new FirestoreService.LotCallback() {
                 @Override
                 public void onLotsLoaded(List<Lot> lots) {}
                 @Override
                 public void onLotAdded(Lot lot) {
-                    loadingDialog.dismiss();
+                    hideLoadingDialog();
                     dialog.dismiss();
-                    showSuccessAlert("Lot created successfully!");
-                    showLotsList();
+                    dialogRoot.setBackgroundColor(defaultColor); // Reset background
+                    showSuccessAlert("Lot added successfully!");
+                    loadLots(); // Refresh the list
                 }
                 @Override
                 public void onLotUpdated(Lot lot) {}
@@ -166,21 +211,29 @@ public class LotsFragment extends Fragment {
                 public void onLotDeleted(String lotId) {}
                 @Override
                 public void onError(String error) {
-                    loadingDialog.dismiss();
-                    textLotNumberError.setText(error);
-                    textLotNumberError.setTextColor(Color.RED);
-                    textLotNumberError.setVisibility(View.VISIBLE);
+                    hideLoadingDialog();
+                    showSuccessAlert("Error adding lot: " + error);
                 }
             });
         });
+
+        buttonCancel.setOnClickListener(v -> {
+            dialog.dismiss();
+            dialogRoot.setBackgroundColor(defaultColor); // Reset background
+        });
+
         dialog.show();
     }
 
     private void showSuccessAlert(String message) {
         Snackbar snackbar = Snackbar.make(requireView(), message, Snackbar.LENGTH_LONG);
         View sbView = snackbar.getView();
+        sbView.setBackgroundColor(Color.TRANSPARENT); // transparent background
         TextView textView = sbView.findViewById(com.google.android.material.R.id.snackbar_text);
-        textView.setTextColor(Color.GREEN);
+        textView.setTextColor(Color.parseColor("#137333")); // dark green text (or use your preferred color)
+        textView.setTextSize(16);
+        textView.setTypeface(null, android.graphics.Typeface.BOLD);
+        textView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); // center align text
         snackbar.show();
     }
 
@@ -220,5 +273,23 @@ public class LotsFragment extends Fragment {
     private void showLotsList() {
         recyclerView.setVisibility(View.VISIBLE);
         emptyStateText.setVisibility(View.GONE);
+    }
+
+    private void showLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) return;
+        loadingDialog = new Dialog(requireContext());
+        loadingDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        loadingDialog.setContentView(R.layout.dialog_loading_lottie);
+        loadingDialog.setCancelable(false);
+        LottieAnimationView lottie = loadingDialog.findViewById(R.id.lottie_loader);
+        lottie.setAnimation("loader.json");
+        lottie.playAnimation();
+        loadingDialog.show();
+    }
+
+    private void hideLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            loadingDialog.dismiss();
+        }
     }
 } 

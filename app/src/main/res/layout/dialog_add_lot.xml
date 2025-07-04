@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialog_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -9,36 +10,47 @@
         android:id="@+id/edit_lot_number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Lot Number"
+        android:hint="Enter Lot Number"
         android:inputType="textPersonName"
         android:maxLines="1"
-        android:importantForAutofill="yes" />
-
-    <TextView
-        android:id="@+id/text_lot_number_error"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@android:color/holo_red_dark"
-        android:text="This lot number is already used."
-        android:visibility="gone"
-        android:textSize="13sp"
-        android:layout_marginTop="4dp" />
+        android:importantForAutofill="yes"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_edittext_focused_selector" />
 
     <EditText
         android:id="@+id/edit_lot_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Date"
+        android:hint="YYYY-MM-DD"
         android:focusable="false"
         android:clickable="true"
         android:inputType="date"
-        android:layout_marginTop="16dp" />
+        android:background="@drawable/bg_edittext_focused_selector"
+        android:drawableEnd="@drawable/ic_calendar"
+        android:drawablePadding="8dp"
+        android:layout_marginBottom="24dp" />
 
-    <Button
-        android:id="@+id/button_create_lot"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Create Lot"
-        android:layout_marginTop="24dp" />
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/button_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel" />
+
+        <Space
+            android:layout_width="16dp"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/button_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add" />
+    </LinearLayout>
 
 </LinearLayout> 
