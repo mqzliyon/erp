@@ -425,6 +425,37 @@ public class FirestoreService {
     }
     
     /**
+     * Search lots by lot number (one-time query)
+     */
+    public void searchLotsByNumberOnce(String lotNumber, LotCallback callback) {
+        mFirestore.collection(COLLECTION_LOTS)
+                .whereGreaterThanOrEqualTo("lotNumber", lotNumber)
+                .whereLessThanOrEqualTo("lotNumber", lotNumber + '\uf8ff')
+                .orderBy("lotNumber")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Lot> lots = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Lot lot = document.toObject(Lot.class);
+                        if (lot != null) {
+                            lot.setId(document.getId());
+                            lots.add(lot);
+                        }
+                    }
+                    
+                    if (callback != null) {
+                        callback.onLotsLoaded(lots);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error searching lots", e);
+                    if (callback != null) {
+                        callback.onError("Failed to search lots: " + e.getMessage());
+                    }
+                });
+    }
+    
+    /**
      * Update lot
      */
     public void updateLot(Lot lot, LotCallback callback) {

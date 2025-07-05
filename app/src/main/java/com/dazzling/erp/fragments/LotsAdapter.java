@@ -20,6 +20,7 @@ import java.util.Locale;
 
 public class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.LotViewHolder> {
     private List<Lot> lots;
+    private List<Lot> allLots;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     public interface OnLotMenuClickListener {
@@ -36,11 +37,89 @@ public class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.LotViewHolder>
 
     public LotsAdapter(List<Lot> lots) {
         this.lots = lots;
+        this.allLots = new java.util.ArrayList<>(lots);
     }
 
     public void setLots(List<Lot> lots) {
         this.lots = lots;
+        this.allLots = new java.util.ArrayList<>(lots);
         notifyDataSetChanged();
+    }
+
+    public void filterLots(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            lots = new java.util.ArrayList<>(allLots);
+        } else {
+            String searchQuery = query.trim().toLowerCase();
+            java.util.List<Lot> filtered = new java.util.ArrayList<>();
+            
+            for (Lot lot : allLots) {
+                // Check if lot number matches (exact or partial)
+                if (lot.getLotNumber() != null) {
+                    String lotNumber = lot.getLotNumber().toLowerCase();
+                    
+                    // Exact match (highest priority) - shows first
+                    if (lotNumber.equals(searchQuery)) {
+                        filtered.add(0, lot);
+                        continue;
+                    }
+                    
+                    // Starts with match (high priority)
+                    if (lotNumber.startsWith(searchQuery)) {
+                        filtered.add(lot);
+                        continue;
+                    }
+                    
+                    // Contains match (medium priority)
+                    if (lotNumber.contains(searchQuery)) {
+                        filtered.add(lot);
+                        continue;
+                    }
+                    
+                    // Smart search: Remove "Lot-" prefix for more flexible searching
+                    String cleanLotNumber = lotNumber.replace("lot-", "").replace("lot", "");
+                    if (cleanLotNumber.contains(searchQuery) || searchQuery.contains(cleanLotNumber)) {
+                        filtered.add(lot);
+                        continue;
+                    }
+                }
+                
+                // Check if date matches (YYYY-MM-DD format)
+                if (lot.getCreatedAt() != null) {
+                    String dateStr = dateFormat.format(lot.getCreatedAt());
+                    if (dateStr.contains(searchQuery)) {
+                        filtered.add(lot);
+                        continue;
+                    }
+                }
+            }
+            
+            lots = filtered;
+        }
+        notifyDataSetChanged();
+    }
+    
+    /**
+     * Get search suggestions based on current lots
+     */
+    public java.util.List<String> getSearchSuggestions(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        
+        String searchQuery = query.trim().toLowerCase();
+        java.util.List<String> suggestions = new java.util.ArrayList<>();
+        
+        for (Lot lot : allLots) {
+            if (lot.getLotNumber() != null) {
+                String lotNumber = lot.getLotNumber();
+                if (lotNumber.toLowerCase().contains(searchQuery)) {
+                    suggestions.add(lotNumber);
+                }
+            }
+        }
+        
+        return suggestions;
     }
 
     @NonNull

@@ -125,6 +125,56 @@ public class MainActivity extends AppCompatActivity implements
                 .penaltyLog()
                 .build());
             
+            // Initialize Search Bar
+            View searchBar = findViewById(R.id.search_bar);
+            if (searchBar != null) {
+                final View searchCard = searchBar;
+                final ImageView searchIcon = searchBar.findViewById(R.id.search_icon);
+                final ImageView clearIcon = searchBar.findViewById(R.id.clear_icon);
+                final android.widget.EditText editText = searchBar.findViewById(R.id.edit_text_search);
+
+                // Animate search bar: slide in from top and fade in
+                searchCard.setTranslationY(-100f);
+                searchCard.setAlpha(0f);
+                searchCard.animate()
+                        .translationY(0f)
+                        .alpha(1f)
+                        .setDuration(500)
+                        .setStartDelay(200)
+                        .start();
+
+                // Focus EditText and show keyboard
+                editText.requestFocus();
+                editText.postDelayed(() -> {
+                    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                    }
+                }, 400);
+
+                // Show clear icon only when text is not empty
+                editText.addTextChangedListener(new android.text.TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        clearIcon.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+                    }
+                    @Override
+                    public void afterTextChanged(android.text.Editable s) {}
+                });
+
+                // Clear text when clear icon is pressed
+                clearIcon.setOnClickListener(v -> editText.setText(""));
+
+                // Optional: handle search icon click (e.g., trigger search)
+                searchIcon.setOnClickListener(v -> {
+                    // You can trigger search here if needed
+                    // For now, just focus the EditText
+                    editText.requestFocus();
+                });
+            }
+            
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
             // Fallback to login if initialization fails
@@ -218,10 +268,34 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
     
+    private boolean doubleBackToExitPressedOnce = false;
+    
     @Override
     public void onBackPressed() {
-        // Since drawer is always open, just handle normal back press
-        super.onBackPressed();
+        // Check if we're on the first fragment (Dashboard)
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        
+        if (currentFragment instanceof DashboardFragment) {
+            // If on dashboard, show exit confirmation
+            if (doubleBackToExitPressedOnce) {
+                super.onBackPressed();
+                return;
+            }
+            
+            this.doubleBackToExitPressedOnce = true;
+            Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show();
+            
+            new android.os.Handler().postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
+        } else {
+            // If not on dashboard, go back to dashboard
+            loadFragment(new DashboardFragment(), "Dashboard");
+            
+            // Update bottom navigation to reflect dashboard selection
+            BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);
+            if (bottomNav != null) {
+                bottomNav.setSelectedItemId(R.id.nav_dashboard);
+            }
+        }
     }
     
 

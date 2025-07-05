@@ -3,9 +3,9 @@
     xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    card_view:cardCornerRadius="16dp"
-    card_view:cardElevation="6dp"
+    android:layout_margin="4dp"
+    card_view:cardCornerRadius="12dp"
+    card_view:cardElevation="4dp"
     card_view:cardBackgroundColor="@color/white">
 
     <LinearLayout
@@ -13,20 +13,20 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <!-- Avatar/Icon -->
+        <!-- Compact Icon -->
         <ImageView
             android:id="@+id/image_cutting_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:src="@drawable/ic_cutting_custom"
             android:background="@drawable/bg_avatar_circle"
             android:scaleType="centerCrop"
             android:contentDescription="Cutting Icon"
-            android:layout_marginEnd="16dp" />
+            android:layout_marginEnd="12dp" />
 
-        <!-- Texts -->
+        <!-- Compact Text Layout -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -39,14 +39,14 @@
                 android:layout_height="wrap_content"
                 android:text="Fabric Type"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:textColor="@color/purple_700" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="4dp">
+                android:layout_marginTop="2dp">
 
                 <TextView
                     android:id="@+id/text_cutting_quantity"
@@ -56,45 +56,50 @@
                     android:textStyle="bold"
                     android:textColor="@color/white"
                     android:background="@drawable/bg_chip_quantity"
-                    android:paddingLeft="10dp"
-                    android:paddingRight="10dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:textSize="13sp" />
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:textSize="12sp" />
 
+                <TextView
+                    android:id="@+id/text_cutting_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date"
+                    android:textColor="#0063FF"
+                    android:textSize="11sp"
+                    android:layout_marginStart="8dp"
+                    android:gravity="center_vertical" />
             </LinearLayout>
-            <TextView
-                android:id="@+id/text_cutting_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Date"
-                android:textColor="#0063FF"
-                android:textSize="13sp"
-                android:layout_marginTop="2dp"
-                android:gravity="start" />
         </LinearLayout>
 
-        <!-- Right-side icons (optional, for future actions) -->
+        <!-- Compact Action Icons -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="end|center_vertical">
-            <!-- New sync arrows icon -->
+            
             <ImageView
                 android:id="@+id/image_cutting_sync"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_sync_arrows"
-                android:contentDescription="Sync Arrows"
-                android:layout_marginEnd="8dp" />
+                android:contentDescription="Convert"
+                android:layout_marginEnd="4dp"
+                android:padding="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:focusable="true"
+                android:clickable="true" />
+                
             <ImageView
                 android:id="@+id/image_cutting_menu"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_more_vert"
                 android:contentDescription="Menu"
-                android:padding="4dp"
+                android:padding="2dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:focusable="true"
                 android:clickable="true" />

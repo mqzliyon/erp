@@ -21,6 +21,7 @@ public class Lot {
     // Quantities in KG
     private double totalFabricKg;
     private double cuttingKg;
+    private int cuttingPcs; // Total cutting quantity in pieces
     private double embroideryReceiveKg;
     private double embroideryRejectKg;
     private double officeShipmentKg;
@@ -105,6 +106,9 @@ public class Lot {
 
     public double getCuttingKg() { return cuttingKg; }
     public void setCuttingKg(double cuttingKg) { this.cuttingKg = cuttingKg; }
+
+    public int getCuttingPcs() { return cuttingPcs; }
+    public void setCuttingPcs(int cuttingPcs) { this.cuttingPcs = cuttingPcs; }
 
     public double getEmbroideryReceiveKg() { return embroideryReceiveKg; }
     public void setEmbroideryReceiveKg(double embroideryReceiveKg) { this.embroideryReceiveKg = embroideryReceiveKg; }

@@ -86,6 +86,7 @@ dependencies {
     
     // Room Database
     implementation(libs.room.runtime)
+    implementation(libs.fragment)
     annotationProcessor(libs.room.compiler)
     
     // Lifecycle

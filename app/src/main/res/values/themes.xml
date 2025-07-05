@@ -7,18 +7,17 @@
         <item name="android:statusBarColor">@android:color/white</item>
         <item name="android:windowLightStatusBar">true</item>
 
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowSplashScreenBackground" tools:ignore="NewApi">@null</item>
-        <item name="android:windowSplashScreenAnimatedIcon" tools:ignore="NewApi">@null</item>
-        <item name="android:windowSplashScreenIconBackgroundColor" tools:ignore="NewApi">@null</item>
-
     </style>
 
     <style name="Theme.ERP" parent="Base.Theme.ERP" />
 
-    <style name="Theme.ERP.Splash" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowBackground">@android:color/white</item>
-        <item name="android:statusBarColor">@android:color/white</item>
-        <item name="android:windowLightStatusBar">true</item>
-    </style>
+
+<!--    &lt;!&ndash; Splash screen theme &ndash;&gt;-->
+<!--    <style name="Theme.ERP.Splash" parent="Theme.SplashScreen">-->
+<!--        <item name="windowSplashScreenBackground">@color/white</item>-->
+<!--        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo.png</item>-->
+<!--        <item name="postSplashScreenTheme">@style/Theme.ERP</item>-->
+<!--    </style>-->
+
+
 </resources>

@@ -4,11 +4,6 @@
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
 
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowSplashScreenBackground" tools:ignore="NewApi">@null</item>
-        <item name="android:windowSplashScreenAnimatedIcon" tools:ignore="NewApi">@null</item>
-        <item name="android:windowSplashScreenIconBackgroundColor" tools:ignore="NewApi">@null</item>
-
 
     </style>
 </resources>

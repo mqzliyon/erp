@@ -22,4 +22,9 @@
     <color name="nav_menu_bg">#ECE3F4</color>
     <color name="nav_menu_active_bg">#E8DEF7</color>
     <color name="background_section">#EDEEF3</color>
+    <color name="md_theme_primary">#6750A4</color>
+    <color name="md_theme_secondary">#625B71</color>
+    <color name="md_theme_surfaceVariant">#E7E0EC</color>
+    <color name="md_theme_onSurface">#1C1B1F</color>
+    <color name="md_theme_onSurfaceVariant">#49454F</color>
 </resources>
