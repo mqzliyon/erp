@@ -34,6 +34,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
+import android.util.Log;
 
 /**
  * Fragment for managing lots
@@ -498,6 +499,29 @@ public class LotsFragment extends Fragment {
                         }
                     })
                     .start();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        try {
+            // Hide keyboard when fragment is paused
+            if (getActivity() != null) {
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
+                    getActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null && getView() != null) {
+                    imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+                }
+            }
+            
+            // Hide loading dialog if showing
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.dismiss();
+            }
+        } catch (Exception e) {
+            Log.e("LotsFragment", "Error in onPause", e);
         }
     }
 } 

@@ -34,6 +34,8 @@ import androidx.appcompat.app.AlertDialog;
 import com.dazzling.erp.fragments.FabricsAdapter;
 import com.airbnb.lottie.LottieAnimationView;
 
+import android.util.Log;
+
 /**
  * Fragment for managing fabrics
  * Displays list of fabrics and allows CRUD operations
@@ -497,5 +499,28 @@ public class FabricsFragment extends Fragment {
             })
             .setNegativeButton("Cancel", null)
             .show();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        try {
+            // Hide keyboard when fragment is paused
+            if (getActivity() != null) {
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
+                    getActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null && getView() != null) {
+                    imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+                }
+            }
+            
+            // Pause any ongoing animations or operations
+            if (lottieLoading != null) {
+                lottieLoading.pauseAnimation();
+            }
+        } catch (Exception e) {
+            Log.e("FabricsFragment", "Error in onPause", e);
+        }
     }
 } 

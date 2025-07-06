@@ -24,6 +24,7 @@ import com.airbnb.lottie.LottieAnimationView;
 import java.util.ArrayList;
 import java.util.List;
 import java.text.SimpleDateFormat;
+import android.util.Log;
 
 /**
  * Fragment for managing cutting operations
@@ -38,6 +39,7 @@ public class CuttingFragment extends Fragment {
     private FirestoreService firestoreService;
     private CuttingAdapter cuttingAdapter;
     private LottieAnimationView lottieLoading;
+    private boolean isFragmentDestroyed = false; // Flag to prevent operations after destruction
 
     @Nullable
     @Override
@@ -76,44 +78,74 @@ public class CuttingFragment extends Fragment {
     }
 
     private void loadCuttingOperations() {
+        if (!isAdded() || getActivity() == null || isFragmentDestroyed) {
+            return;
+        }
+        
         firestoreService.getCuttings(new FirestoreService.CuttingCallback() {
             @Override
             public void onCuttingsLoaded(List<Cutting> cuttings) {
-                cuttingList.clear();
-                cuttingList.addAll(cuttings);
-                cuttingAdapter.notifyDataSetChanged();
-                if (cuttingList.isEmpty()) {
-                    showEmptyState();
-                } else {
-                    showCuttingList();
+                if (!isAdded() || getActivity() == null || cuttingList == null || isFragmentDestroyed) {
+                    return;
+                }
+                
+                try {
+                    cuttingList.clear();
+                    if (cuttings != null) {
+                        cuttingList.addAll(cuttings);
+                    }
+                    
+                    if (cuttingAdapter != null) {
+                        cuttingAdapter.notifyDataSetChanged();
+                    }
+                    
+                    if (cuttingList.isEmpty()) {
+                        showEmptyState();
+                    } else {
+                        showCuttingList();
+                    }
+                } catch (Exception e) {
+                    Log.e("CuttingFragment", "Error updating cutting list", e);
                 }
             }
             @Override public void onCuttingAdded(Cutting cutting) {}
             @Override public void onCuttingUpdated(Cutting cutting) {}
             @Override public void onCuttingDeleted(String cuttingId) {}
-            @Override public void onError(String error) {}
+            @Override public void onError(String error) {
+                if (isAdded() && !isFragmentDestroyed) {
+                    Log.e("CuttingFragment", "Error loading cuttings: " + error);
+                }
+            }
         });
     }
 
     private void showEmptyState() {
+        if (!isAdded() || recyclerView == null || emptyStateText == null || isFragmentDestroyed) {
+            return;
+        }
         recyclerView.setVisibility(View.GONE);
         emptyStateText.setVisibility(View.VISIBLE);
         emptyStateText.setText("No cutting operations found.\nTap + to add a new operation.");
     }
 
     private void showCuttingList() {
+        if (!isAdded() || recyclerView == null || emptyStateText == null || isFragmentDestroyed) {
+            return;
+        }
         recyclerView.setVisibility(View.VISIBLE);
         emptyStateText.setVisibility(View.GONE);
     }
 
     private void showLoading(boolean show) {
-        if (lottieLoading != null) {
-            lottieLoading.setVisibility(show ? View.VISIBLE : View.GONE);
-            if (show) {
-                lottieLoading.playAnimation();
-            } else {
-                lottieLoading.pauseAnimation();
-            }
+        if (!isAdded() || lottieLoading == null || isFragmentDestroyed) {
+            return;
+        }
+        
+        lottieLoading.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            lottieLoading.playAnimation();
+        } else {
+            lottieLoading.pauseAnimation();
         }
     }
 
@@ -133,7 +165,14 @@ public class CuttingFragment extends Fragment {
         }
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (cuttingList == null || position >= cuttingList.size()) {
+                return;
+            }
+            
             Cutting cutting = cuttingList.get(position);
+            if (cutting == null) {
+                return;
+            }
             
             // Compact display for small lists
             if (cutting.getQuantityPcs() > 0) {
@@ -155,11 +194,15 @@ public class CuttingFragment extends Fragment {
 
             // View mode on item click
             holder.itemView.setOnClickListener(v -> {
-                fragment.showCuttingViewDialog(v, cutting);
+                if (fragment.isAdded()) {
+                    fragment.showCuttingViewDialog(v, cutting);
+                }
             });
 
             // 3-dot menu for small cutting lists
             holder.menu.setOnClickListener(v -> {
+                if (!fragment.isAdded()) return;
+                
                 androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(v.getContext(), v);
                 popup.getMenuInflater().inflate(R.menu.menu_cutting_item, popup.getMenu());
                 
@@ -176,6 +219,8 @@ public class CuttingFragment extends Fragment {
                 }
                 
                 popup.setOnMenuItemClickListener(item -> {
+                    if (!fragment.isAdded()) return false;
+                    
                     if (item.getItemId() == R.id.action_view) {
                         fragment.showCuttingViewDialog(v, cutting);
                         return true;
@@ -200,12 +245,14 @@ public class CuttingFragment extends Fragment {
 
             // Sync icon click: show convert dialog
             holder.sync.setOnClickListener(v -> {
-                fragment.showConvertCuttingDialog(cutting);
+                if (fragment.isAdded()) {
+                    fragment.showConvertCuttingDialog(cutting);
+                }
             });
         }
         @Override
         public int getItemCount() {
-            return cuttingList.size();
+            return cuttingList != null ? cuttingList.size() : 0;
         }
         static class ViewHolder extends RecyclerView.ViewHolder {
             ImageView icon;
@@ -521,6 +568,11 @@ public class CuttingFragment extends Fragment {
     }
 
     private void showSendToLotDialog() {
+        // Prevent multiple dialogs from opening
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+        
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_send_to_lot, null);
         
@@ -529,6 +581,9 @@ public class CuttingFragment extends Fragment {
                 .setView(dialogView)
                 .setCancelable(true)
                 .create();
+        
+        // Prevent dialog from being dismissed during operations
+        dialog.setCanceledOnTouchOutside(false);
         
         final com.google.android.material.textfield.TextInputLayout layoutLotNumber = dialogView.findViewById(R.id.layout_lot_number);
         final android.widget.AutoCompleteTextView inputLotNumber = dialogView.findViewById(R.id.input_lot_number);
@@ -539,45 +594,68 @@ public class CuttingFragment extends Fragment {
         final com.google.android.material.textfield.TextInputEditText inputDate = dialogView.findViewById(R.id.input_date);
         final com.google.android.material.button.MaterialButton buttonSend = dialogView.findViewById(R.id.button_send);
 
+        // Validate UI elements exist
+        if (layoutLotNumber == null || inputLotNumber == null || layoutFabricType == null || 
+            inputFabricType == null || textFabricQuantity == null || inputSendQuantity == null || 
+            inputDate == null || buttonSend == null) {
+            android.widget.Toast.makeText(requireContext(), "Error initializing dialog", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         // Set up date picker and default to today
         java.util.Calendar calendar = java.util.Calendar.getInstance();
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
         inputDate.setText(dateFormat.format(calendar.getTime()));
+        
+        // Date picker
         inputDate.setOnClickListener(v -> {
+            if (!isAdded()) return;
+            
             int year = calendar.get(java.util.Calendar.YEAR);
             int month = calendar.get(java.util.Calendar.MONTH);
             int day = calendar.get(java.util.Calendar.DAY_OF_MONTH);
-            android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(getContext(), (datePicker, y, m, d) -> {
-                calendar.set(y, m, d);
-                inputDate.setText(dateFormat.format(calendar.getTime()));
+            
+            android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(requireContext(), (view, y, m, d) -> {
+                java.util.Calendar selected = java.util.Calendar.getInstance();
+                selected.set(y, m, d);
+                inputDate.setText(dateFormat.format(selected.getTime()));
             }, year, month, day);
             datePickerDialog.show();
         });
 
-        // Fetch all lots and populate dropdown
+        // Load lot numbers for dropdown
         firestoreService.getLots(new FirestoreService.LotCallback() {
             @Override
-            public void onLotsLoaded(List<com.dazzling.erp.models.Lot> lots) {
-                List<String> lotNumbers = new java.util.ArrayList<>();
+            public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {
+                if (!isAdded()) return;
+                
+                java.util.Set<String> lotNumbers = new java.util.HashSet<>();
                 for (com.dazzling.erp.models.Lot lot : lots) {
-                    if (lot.getLotNumber() != null) lotNumbers.add(lot.getLotNumber());
+                    if (lot.getLotNumber() != null && !lot.getLotNumber().isEmpty()) {
+                        lotNumbers.add(lot.getLotNumber());
+                    }
                 }
-                android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, lotNumbers);
-                inputLotNumber.setAdapter(adapter);
+                java.util.List<String> lotNumberOptions = new java.util.ArrayList<>(lotNumbers);
+                android.widget.ArrayAdapter<String> lotNumberAdapter = new android.widget.ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, lotNumberOptions);
+                inputLotNumber.setAdapter(lotNumberAdapter);
             }
             @Override public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
             @Override public void onLotUpdated(com.dazzling.erp.models.Lot lot) {}
             @Override public void onLotDeleted(String lotId) {}
             @Override public void onError(String error) {
-                layoutLotNumber.setError("Failed to load lots");
+                if (isAdded()) {
+                    android.widget.Toast.makeText(requireContext(), "Failed to load lots: " + error, android.widget.Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
-        // Populate Fabric Type dropdown from cuttingList
+        // Load fabric types from cutting list
         java.util.Set<String> cuttingFabricTypes = new java.util.HashSet<>();
-        for (Cutting c : cuttingList) {
-            if (c.getFabricType() != null && !c.getFabricType().isEmpty()) {
-                cuttingFabricTypes.add(c.getFabricType());
+        if (cuttingList != null) {
+            for (Cutting c : cuttingList) {
+                if (c.getFabricType() != null && !c.getFabricType().isEmpty()) {
+                    cuttingFabricTypes.add(c.getFabricType());
+                }
             }
         }
         java.util.List<String> fabricTypeOptions = new java.util.ArrayList<>(cuttingFabricTypes);
@@ -586,11 +664,17 @@ public class CuttingFragment extends Fragment {
 
         // Show available pcs for selected fabric type from cuttingList
         inputFabricType.setOnItemClickListener((parent, view, position, id) -> {
+            if (!isAdded()) return;
+            
             String selectedFabricType = (String) parent.getItemAtPosition(position);
+            if (selectedFabricType == null) return;
+            
             int totalPcs = 0;
-            for (Cutting c : cuttingList) {
-                if (selectedFabricType.equals(c.getFabricType())) {
-                    totalPcs += (int) c.getQuantityPcs();
+            if (cuttingList != null) {
+                for (Cutting c : cuttingList) {
+                    if (selectedFabricType.equals(c.getFabricType())) {
+                        totalPcs += (int) c.getQuantityPcs();
+                    }
                 }
             }
             
@@ -604,10 +688,23 @@ public class CuttingFragment extends Fragment {
             }
         });
 
+        // Flag to prevent multiple simultaneous operations
+        final java.util.concurrent.atomic.AtomicBoolean isProcessing = new java.util.concurrent.atomic.AtomicBoolean(false);
+
         // Validate and send to lot
         buttonSend.setOnClickListener(v -> {
+            // Prevent multiple clicks
+            if (isProcessing.get() || !isAdded()) {
+                return;
+            }
+            
+            isProcessing.set(true);
+            
             // Disable button to prevent multiple clicks
             buttonSend.setEnabled(false);
+            
+            // Show loading animation immediately
+            showLoading(true);
             
             final String lotNumber = inputLotNumber.getText().toString().trim();
             final String fabricType = inputFabricType.getText().toString().trim();
@@ -636,6 +733,10 @@ public class CuttingFragment extends Fragment {
             } else {
                 try {
                     parsedSendQty = Integer.parseInt(sendQtyStr);
+                    if (parsedSendQty <= 0) {
+                        inputSendQuantity.setError("⚠️ Quantity must be greater than 0!");
+                        valid = false;
+                    }
                 } catch (NumberFormatException e) {
                     inputSendQuantity.setError("Invalid number");
                     valid = false;
@@ -643,56 +744,56 @@ public class CuttingFragment extends Fragment {
             }
             final int sendQty = parsedSendQty; // Make it final for use in callbacks
             
+            if (!valid) {
+                showLoading(false);
+                buttonSend.setEnabled(true);
+                isProcessing.set(false);
+                return;
+            }
+            
             // Validate send quantity against selected fabric
-            if (!fabricType.isEmpty() && sendQty > 0) {
-                int availablePcs = 0;
+            int availablePcs = 0;
+            if (cuttingList != null) {
                 for (Cutting c : cuttingList) {
                     if (fabricType.equals(c.getFabricType())) {
                         availablePcs += (int) c.getQuantityPcs();
                     }
                 }
-                
-                // Check if fabric quantity is 0 pcs
-                if (availablePcs == 0) {
-                    inputSendQuantity.setError("Your fabric quantity is 0 pcs!");
-                    textFabricQuantity.setTextColor(android.graphics.Color.RED);
-                    textFabricQuantity.setText("⚠️ Available: 0 pcs - Cannot send!");
-                    valid = false;
-                } else if (sendQty > availablePcs) {
-                    inputSendQuantity.setError("Cannot send more than available fabric pcs (" + availablePcs + ")");
-                    valid = false;
-                } else {
-                    // Reset text color if valid
-                    textFabricQuantity.setTextColor(android.graphics.Color.BLACK);
-                    textFabricQuantity.setText("Available: " + availablePcs + " pcs");
-                }
             }
             
-            if (dateStr.isEmpty()) {
-                inputDate.setText(dateFormat.format(calendar.getTime()));
-                dateStr = inputDate.getText().toString();
-            }
-            
-            if (!valid) {
+            if (sendQty > availablePcs) {
+                showLoading(false);
+                inputSendQuantity.setError("⚠️ Cannot send more than available (" + availablePcs + " pcs)!");
                 buttonSend.setEnabled(true);
+                isProcessing.set(false);
                 return;
             }
             
-            // Find all Cutting entries with the selected fabric type and enough pcs
+            // Find available cuttings for this fabric type
             java.util.List<Cutting> availableCuttings = new java.util.ArrayList<>();
-            for (Cutting c : cuttingList) {
-                if (fabricType.equals(c.getFabricType()) && c.getQuantityPcs() > 0) {
-                    availableCuttings.add(c);
+            if (cuttingList != null) {
+                for (Cutting c : cuttingList) {
+                    if (fabricType.equals(c.getFabricType()) && c.getQuantityPcs() > 0) {
+                        availableCuttings.add(c);
+                    }
                 }
             }
             
             if (availableCuttings.isEmpty()) {
+                showLoading(false);
                 android.widget.Toast.makeText(requireContext(), "No cutting entries found for this fabric type!", android.widget.Toast.LENGTH_SHORT).show();
                 buttonSend.setEnabled(true);
+                isProcessing.set(false);
                 return;
             }
             
-            showLoading(true);
+            // Show success message after a short delay to indicate processing
+            android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+            handler.postDelayed(() -> {
+                if (isAdded()) {
+                    android.widget.Toast.makeText(requireContext(), "Processing send operation...", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            }, 500);
             
             // Calculate how much to take from each cutting entry
             int remainingQty = sendQty;
@@ -729,41 +830,36 @@ public class CuttingFragment extends Fragment {
                 remainingQty -= toTakeFromThisCutting;
             }
             
-            if (remainingQty > 0) {
-                showLoading(false);
-                android.widget.Toast.makeText(requireContext(), "Not enough pcs available in cutting entries!", android.widget.Toast.LENGTH_LONG).show();
-                buttonSend.setEnabled(true);
-                return;
-            }
-            
-            // Update all cutting entries
-            final int[] updateCount = {0};
-            final int totalUpdates = cuttingsToUpdate.size();
-            
-            android.util.Log.d("CuttingFragment", "Starting to update " + totalUpdates + " cutting entries for " + sendQty + " pcs");
+            // Update cuttings one by one with proper error handling
+            final java.util.concurrent.atomic.AtomicInteger completedUpdates = new java.util.concurrent.atomic.AtomicInteger(0);
+            final java.util.concurrent.atomic.AtomicBoolean hasError = new java.util.concurrent.atomic.AtomicBoolean(false);
             
             for (Cutting cuttingToUpdate : cuttingsToUpdate) {
-                android.util.Log.d("CuttingFragment", "Updating cutting ID: " + cuttingToUpdate.getId() + " with " + cuttingToUpdate.getQuantityPcs() + " pcs");
-                
                 firestoreService.updateCutting(cuttingToUpdate, new FirestoreService.CuttingCallback() {
                     @Override
                     public void onCuttingUpdated(Cutting updatedCutting) {
-                        updateCount[0]++;
-                        android.util.Log.d("CuttingFragment", "Updated cutting " + updateCount[0] + "/" + totalUpdates);
+                        if (!isAdded()) return;
                         
-                        // When all cutting updates are complete, update the lot
-                        if (updateCount[0] == totalUpdates) {
+                        int completed = completedUpdates.incrementAndGet();
+                        if (completed == cuttingsToUpdate.size() && !hasError.get()) {
                             android.util.Log.d("CuttingFragment", "All cutting updates complete, now updating lot: " + lotNumber);
+                            
+                            // Show progress message
+                            android.widget.Toast.makeText(requireContext(), "Updating lot information...", android.widget.Toast.LENGTH_SHORT).show();
                             
                             // Now update the Lot - use one-time query to avoid infinite callbacks
                             firestoreService.searchLotsByNumberOnce(lotNumber, new FirestoreService.LotCallback() {
                                 @Override public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {
+                                    if (!isAdded()) return;
+                                    
                                     // Find the exact lot by lot number
                                     com.dazzling.erp.models.Lot targetLot = null;
-                                    for (com.dazzling.erp.models.Lot lot : lots) {
-                                        if (lotNumber.equals(lot.getLotNumber())) {
-                                            targetLot = lot;
-                                            break;
+                                    if (lots != null) {
+                                        for (com.dazzling.erp.models.Lot lot : lots) {
+                                            if (lotNumber.equals(lot.getLotNumber())) {
+                                                targetLot = lot;
+                                                break;
+                                            }
                                         }
                                     }
                                     
@@ -771,6 +867,7 @@ public class CuttingFragment extends Fragment {
                                         showLoading(false);
                                         android.widget.Toast.makeText(requireContext(), "Lot not found! Please check the lot number.", android.widget.Toast.LENGTH_LONG).show();
                                         buttonSend.setEnabled(true);
+                                        isProcessing.set(false);
                                         android.util.Log.e("CuttingFragment", "Lot not found: " + lotNumber);
                                         return;
                                     }
@@ -782,16 +879,29 @@ public class CuttingFragment extends Fragment {
                                     
                                     firestoreService.updateLot(targetLot, new FirestoreService.LotCallback() {
                                         @Override public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                                            if (!isAdded()) return;
+                                            
+                                            // Hide loading and show success message
                                             showLoading(false);
-                                            android.widget.Toast.makeText(requireContext(), "Sent " + sendQty + " pcs to lot successfully!", android.widget.Toast.LENGTH_LONG).show();
-                                            dialog.dismiss(); // Dismiss dialog on success
-                                            loadCuttingOperations(); // Refresh the cutting list
+                                            
+                                            // Show success message with more details
+                                            String successMessage = String.format("✅ Successfully sent %d pcs to lot %s!", sendQty, lotNumber);
+                                            android.widget.Toast.makeText(requireContext(), successMessage, android.widget.Toast.LENGTH_LONG).show();
+                                            
+                                            // Dismiss dialog and refresh
+                                            dialog.dismiss();
+                                            loadCuttingOperations();
+                                            
                                             android.util.Log.d("CuttingFragment", "Successfully sent " + sendQty + " pcs to lot: " + lotNumber);
+                                            isProcessing.set(false);
                                         }
                                         @Override public void onError(String error) {
+                                            if (!isAdded()) return;
+                                            
                                             showLoading(false);
                                             android.widget.Toast.makeText(requireContext(), "Failed to update lot: " + error, android.widget.Toast.LENGTH_LONG).show();
                                             buttonSend.setEnabled(true);
+                                            isProcessing.set(false);
                                             android.util.Log.e("CuttingFragment", "Failed to update lot: " + error);
                                         }
                                         @Override public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
@@ -800,9 +910,13 @@ public class CuttingFragment extends Fragment {
                                     });
                                 }
                                 @Override public void onError(String error) {
+                                    if (!isAdded()) return;
+                                    
+                                    hasError.set(true);
                                     showLoading(false);
                                     android.widget.Toast.makeText(requireContext(), "Failed to find lot: " + error, android.widget.Toast.LENGTH_LONG).show();
                                     buttonSend.setEnabled(true);
+                                    isProcessing.set(false);
                                     android.util.Log.e("CuttingFragment", "Failed to find lot: " + error);
                                 }
                                 @Override public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
@@ -812,9 +926,13 @@ public class CuttingFragment extends Fragment {
                         }
                     }
                     @Override public void onError(String error) {
+                        if (!isAdded()) return;
+                        
+                        hasError.set(true);
                         showLoading(false);
                         android.widget.Toast.makeText(requireContext(), "Failed to update cutting: " + error, android.widget.Toast.LENGTH_LONG).show();
                         buttonSend.setEnabled(true);
+                        isProcessing.set(false);
                         android.util.Log.e("CuttingFragment", "Error updating cutting: " + error);
                     }
                     @Override public void onCuttingDeleted(String cuttingId) {}
@@ -824,6 +942,84 @@ public class CuttingFragment extends Fragment {
             }
         });
 
+        // Handle dialog dismissal
+        dialog.setOnDismissListener(dialogInterface -> {
+            isProcessing.set(false);
+        });
+
         dialog.show();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        
+        try {
+            // Hide keyboard when fragment is paused
+            if (getActivity() != null) {
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
+                    getActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null && getView() != null) {
+                    imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+                }
+            }
+            
+            // Pause any ongoing animations or operations
+            if (lottieLoading != null) {
+                lottieLoading.pauseAnimation();
+            }
+        } catch (Exception e) {
+            Log.e("CuttingFragment", "Error in onPause", e);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        
+        // Mark fragment as destroyed to prevent operations
+        isFragmentDestroyed = true;
+        
+        // Hide keyboard before destroying view
+        if (getActivity() != null) {
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
+                getActivity().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            if (imm != null && getView() != null) {
+                imm.hideSoftInputFromWindow(getView().getWindowToken(), 0);
+            }
+        }
+        
+        // Clean up references to prevent memory leaks
+        if (recyclerView != null) {
+            recyclerView.setAdapter(null);
+        }
+        if (cuttingAdapter != null) {
+            cuttingAdapter = null;
+        }
+        if (cuttingList != null) {
+            cuttingList.clear();
+            cuttingList = null;
+        }
+        if (fabricList != null) {
+            fabricList.clear();
+            fabricList = null;
+        }
+        if (firestoreService != null) {
+            firestoreService = null;
+        }
+        if (lottieLoading != null) {
+            lottieLoading = null;
+        }
+        if (emptyStateText != null) {
+            emptyStateText = null;
+        }
+        
+        Log.d("CuttingFragment", "Fragment destroyed and cleaned up");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d("CuttingFragment", "Fragment onDestroy called");
     }
 } 

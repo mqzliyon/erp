@@ -25,6 +25,11 @@ public class Lot {
     private double embroideryReceiveKg;
     private double embroideryRejectKg;
     private double officeShipmentKg;
+
+    // Quantities in Pcs (new fields)
+    private int embroideryReceivePcs;
+    private int embroideryRejectPcs;
+    private int officeShipmentPcs;
     
     // Factory Balance
     private double factoryBalanceAGradeKg;
@@ -118,6 +123,15 @@ public class Lot {
 
     public double getOfficeShipmentKg() { return officeShipmentKg; }
     public void setOfficeShipmentKg(double officeShipmentKg) { this.officeShipmentKg = officeShipmentKg; }
+
+    public int getEmbroideryReceivePcs() { return embroideryReceivePcs; }
+    public void setEmbroideryReceivePcs(int embroideryReceivePcs) { this.embroideryReceivePcs = embroideryReceivePcs; }
+
+    public int getEmbroideryRejectPcs() { return embroideryRejectPcs; }
+    public void setEmbroideryRejectPcs(int embroideryRejectPcs) { this.embroideryRejectPcs = embroideryRejectPcs; }
+
+    public int getOfficeShipmentPcs() { return officeShipmentPcs; }
+    public void setOfficeShipmentPcs(int officeShipmentPcs) { this.officeShipmentPcs = officeShipmentPcs; }
 
     public double getFactoryBalanceAGradeKg() { return factoryBalanceAGradeKg; }
     public void setFactoryBalanceAGradeKg(double factoryBalanceAGradeKg) { this.factoryBalanceAGradeKg = factoryBalanceAGradeKg; }

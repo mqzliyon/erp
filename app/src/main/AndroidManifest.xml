@@ -24,6 +24,8 @@
         android:hardwareAccelerated="true"
         android:largeHeap="true"
         android:usesCleartextTraffic="false"
+        android:requestLegacyExternalStorage="false"
+        android:preserveLegacyExternalStorage="false"
         tools:targetApi="31">
         
         <!-- Google Play Services -->
@@ -39,7 +41,23 @@
             android:name="firebase_performance_collection_enabled"
             android:value="true" />
             
-        <activity android:name=".MainActivity" android:exported="true">
+        <!-- Suppress verbose logging -->
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.4" />
+            
+        <!-- Handle device-specific issues -->
+        <meta-data
+            android:name="android.app.lib_name"
+            android:value="erp" />
+            
+        <activity 
+            android:name=".MainActivity" 
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ERP">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -65,6 +83,17 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+            
+        <!-- Receiver for handling system events -->
+        <receiver
+            android:name=".services.SystemEventReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

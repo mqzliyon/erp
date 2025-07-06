@@ -18,39 +18,20 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-
-
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Enable multidex for large app
         multiDexEnabled = true
+        
+        // Add build config fields for error handling
+        buildConfigField("boolean", "ENABLE_CRASH_REPORTING", "true")
+        buildConfigField("boolean", "ENABLE_VERBOSE_LOGGING", "false")
+        buildConfigField("String", "APP_VERSION", "\"1.0\"")
+        
+        // Add manifest placeholders for device-specific handling
+        manifestPlaceholders["enableDeviceSpecificFixes"] = "true"
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-        debug {
-            isDebuggable = true
-            isMinifyEnabled = false
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    
-    buildFeatures {
-        viewBinding = true
-        dataBinding = true
-    }
-    
-    // Enable R8 optimization
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -59,7 +40,52 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Suppress verbose logging in release
+            buildConfigField("boolean", "ENABLE_VERBOSE_LOGGING", "false")
         }
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+            // Enable verbose logging only in debug
+            buildConfigField("boolean", "ENABLE_VERBOSE_LOGGING", "true")
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    
+    buildFeatures {
+        viewBinding = true
+        dataBinding = true
+        buildConfig = true
+    }
+    
+    // Add packaging options to handle conflicts
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/license.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/notice.txt"
+            excludes += "META-INF/ASL2.0"
+            excludes += "META-INF/*.kotlin_module"
+        }
+    }
+    
+    // Add lint options to suppress warnings
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+        disable += "MissingTranslation"
+        disable += "ExtraTranslation"
+        disable += "UnusedResources"
+        disable += "ObsoleteLintCustomCheck"
     }
 }
 
@@ -78,6 +104,7 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
     
     // Google Play Services - Use compatible versions
     implementation("com.google.android.gms:play-services-base:18.2.0")

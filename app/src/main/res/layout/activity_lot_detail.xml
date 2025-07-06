@@ -16,6 +16,7 @@
         app:title="Lot Details"
         app:titleCentered="true"
         app:titleTextColor="@color/md_theme_onSurface"
+        app:titleTextAppearance="@style/Toolbar.TitleText.18sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

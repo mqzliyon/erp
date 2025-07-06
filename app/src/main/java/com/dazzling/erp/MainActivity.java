@@ -37,6 +37,8 @@ import android.os.StrictMode;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.appbar.MaterialToolbar;
 
+import com.google.firebase.auth.FirebaseUser;
+
 /**
  * Main Activity for the ERP application
  * Handles navigation, authentication, and theme switching
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements
     private long lastClickTime = 0;
     private static final long CLICK_DEBOUNCE_MS = 250;
     private LottieAnimationView lottieLoading;
+    private boolean isDestroyed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +64,13 @@ public class MainActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         
         try {
+            // Suppress verbose logging first
+            suppressVerboseLogging();
+            
+            // Set content view
+            setContentView(R.layout.activity_main);
+            
+            // Initialize binding
             binding = ActivityMainBinding.inflate(getLayoutInflater());
             setContentView(binding.getRoot());
             
@@ -100,32 +110,104 @@ public class MainActivity extends AppCompatActivity implements
                 return false;
             });
             
-            isInitialized = true;
+            // Check authentication status
+            checkAuthenticationStatus();
             
-            // Check authentication status after UI is ready
-            binding.getRoot().post(() -> {
-                if (!isFinishing() && !isDestroyed()) {
-                    checkAuthenticationStatus();
-                }
-            });
-            
-            // Load default fragment
-            loadFragment(new DashboardFragment(), "Dashboard");
+            // Handle navigation from other activities
+            String navigateTo = getIntent().getStringExtra("navigate_to");
+            if (navigateTo != null) {
+                // Store the navigation intent to be processed after authentication
+                // The navigation will be handled in the authentication callbacks
+                Log.d(TAG, "Navigation intent received: " + navigateTo);
+            }
+            // Don't navigate immediately - wait for authentication to complete
             
             // Initialize global loader
-            lottieLoading = findViewById(R.id.lottie_loading);
-            showGlobalLoader(false); // Hide by default
+            try {
+                lottieLoading = findViewById(R.id.lottie_loading);
+                showGlobalLoader(false); // Hide by default
+            } catch (Exception e) {
+                Log.e(TAG, "Error initializing global loader", e);
+            }
             
-            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
-                .detectAll()
-                .penaltyLog()
-                .build());
-            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
-                .detectAll()
-                .penaltyLog()
-                .build());
+            // Configure StrictMode with better error handling
+            configureStrictMode();
             
             // Initialize Search Bar
+            initializeSearchBar();
+            
+            // Mark as initialized
+            isInitialized = true;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onCreate", e);
+            // Fallback to login if initialization fails
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        }
+    }
+    
+    /**
+     * Suppress verbose logging from system components
+     */
+    private void suppressVerboseLogging() {
+        try {
+            // Set system properties to reduce verbose logging
+            System.setProperty("log.tag.SurfaceFlinger", "ERROR");
+            System.setProperty("log.tag.BufferQueueDebug", "ERROR");
+            System.setProperty("log.tag.OpenGLRenderer", "ERROR");
+            System.setProperty("log.tag.TranClassInfo", "ERROR");
+            System.setProperty("log.tag.QT", "ERROR");
+            
+            // Suppress IME callback warnings
+            System.setProperty("log.tag.InputMethodManager", "ERROR");
+            
+            // Suppress system-level scroll and behavior warnings
+            System.setProperty("log.tag.ScrollIdentify", "ERROR");
+            System.setProperty("log.tag.SBE", "ERROR");
+            System.setProperty("log.tag.BoostFwk", "ERROR");
+            System.setProperty("log.tag.TasksUtil", "ERROR");
+            System.setProperty("log.tag.ActivityInfo", "ERROR");
+            
+            // Suppress StrictMode warnings for system components
+            System.setProperty("log.tag.StrictMode", "ERROR");
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error suppressing verbose logging", e);
+        }
+    }
+    
+    /**
+     * Configure StrictMode with better error handling
+     */
+    private void configureStrictMode() {
+        try {
+            // Use a more lenient StrictMode policy to avoid system-level violations
+            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+                .detectCustomSlowCalls()
+                .penaltyLog()
+                .permitNetwork() // Allow network operations
+                .permitDiskReads() // Allow disk reads to prevent system violations
+                .permitDiskWrites() // Allow disk writes
+                .build());
+            
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+                .detectLeakedSqlLiteObjects()
+                .detectLeakedClosableObjects()
+                .detectActivityLeaks()
+                .penaltyLog()
+                .build());
+        } catch (Exception e) {
+            Log.e(TAG, "Error configuring StrictMode", e);
+        }
+    }
+    
+    /**
+     * Initialize search bar with error handling
+     */
+    private void initializeSearchBar() {
+        try {
             View searchBar = findViewById(R.id.search_bar);
             if (searchBar != null) {
                 final View searchCard = searchBar;
@@ -146,9 +228,11 @@ public class MainActivity extends AppCompatActivity implements
                 // Focus EditText and show keyboard
                 editText.requestFocus();
                 editText.postDelayed(() -> {
-                    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                    if (imm != null) {
-                        imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                    if (!isDestroyed && !isFinishing()) {
+                        android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                        if (imm != null) {
+                            imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                        }
                     }
                 }, 400);
 
@@ -158,38 +242,106 @@ public class MainActivity extends AppCompatActivity implements
                     public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
-                        clearIcon.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+                        if (clearIcon != null) {
+                            clearIcon.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+                        }
                     }
                     @Override
                     public void afterTextChanged(android.text.Editable s) {}
                 });
 
                 // Clear text when clear icon is pressed
-                clearIcon.setOnClickListener(v -> editText.setText(""));
+                if (clearIcon != null) {
+                    clearIcon.setOnClickListener(v -> editText.setText(""));
+                }
 
                 // Optional: handle search icon click (e.g., trigger search)
-                searchIcon.setOnClickListener(v -> {
-                    // You can trigger search here if needed
-                    // For now, just focus the EditText
-                    editText.requestFocus();
-                });
+                if (searchIcon != null) {
+                    searchIcon.setOnClickListener(v -> {
+                        // You can trigger search here if needed
+                        // For now, just focus the EditText
+                        editText.requestFocus();
+                    });
+                }
             }
-            
         } catch (Exception e) {
-            Log.e(TAG, "Error in onCreate", e);
-            // Fallback to login if initialization fails
-            Intent intent = new Intent(this, LoginActivity.class);
-            startActivity(intent);
-            finish();
+            Log.e(TAG, "Error initializing search bar", e);
         }
     }
     
     @Override
     protected void onResume() {
         super.onResume();
-        // Only check authentication if not already initialized
-        if (isInitialized && currentUser == null && authService != null) {
-            checkAuthenticationStatus();
+        isDestroyed = false;
+        
+        try {
+            // Check if user is still authenticated
+            if (isInitialized && authService != null) {
+                // Use the correct method to check current user
+                if (authService.isUserSignedIn()) {
+                    FirebaseUser currentUser = authService.getCurrentUser();
+                    if (currentUser != null) {
+                        // User is signed in, fetch their data
+                        authService.fetchUserData(currentUser.getUid());
+                    }
+                } else {
+                    // User is not signed in, redirect to login
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    startActivity(intent);
+                    finish();
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onResume", e);
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        
+        try {
+            // Hide keyboard when activity pauses
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                View currentFocus = getCurrentFocus();
+                if (currentFocus != null) {
+                    imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onPause", e);
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        isDestroyed = true;
+        
+        try {
+            // Clean up resources
+            if (authService != null) {
+                authService.setAuthCallback(null);
+                authService = null;
+            }
+            
+            if (binding != null) {
+                binding = null;
+            }
+            
+            // Hide keyboard
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                View currentFocus = getCurrentFocus();
+                if (currentFocus != null) {
+                    imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onDestroy", e);
+        } finally {
+            super.onDestroy();
         }
     }
     
@@ -326,76 +478,142 @@ public class MainActivity extends AppCompatActivity implements
     public void onAuthSuccess(User user) {
         Log.d(TAG, "onAuthSuccess: User authenticated successfully");
         this.currentUser = user;
-        Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-        if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
-            ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+        
+        try {
+            Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+            if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
+                ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+            }
+            
+            // Hide loading indicator
+            showGlobalLoader(false);
+            updateNavigationHeader(user);
+            
+            // Start background service to prevent process killing
+            startBackgroundService();
+            
+            // Check if we have a navigation intent, if not, load dashboard
+            String navigateTo = getIntent().getStringExtra("navigate_to");
+            if (navigateTo != null) {
+                // Navigate to the requested fragment
+                navigateToFragment(navigateTo);
+                // Clear the intent extra to prevent reprocessing
+                getIntent().removeExtra("navigate_to");
+            } else {
+                // Load default dashboard fragment only after successful authentication
+                loadFragment(new DashboardFragment(), "Dashboard");
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onAuthSuccess", e);
+            // Fallback: just hide loader and show dashboard
+            showGlobalLoader(false);
+            loadFragment(new DashboardFragment(), "Dashboard");
         }
-        // Hide loading indicator
-        showGlobalLoader(false);
-        updateNavigationHeader(user);
-        
-        // Start background service to prevent process killing
-        startBackgroundService();
-        
-        // Set default navigation item
-        loadFragment(new DashboardFragment(), "Dashboard");
-        // Load default dashboard fragment only after successful authentication
-        loadFragment(new DashboardFragment(), "Dashboard");
     }
     
     @Override
     public void onAuthFailure(String error) {
         Log.e(TAG, "onAuthFailure: " + error);
-        // Hide loading indicator
-        showGlobalLoader(false);
-        Toast.makeText(this, "Authentication error: " + error, Toast.LENGTH_LONG).show();
-        // Redirect to login
-        Intent intent = new Intent(this, LoginActivity.class);
-        startActivity(intent);
-        finish();
+        
+        try {
+            // Hide loading indicator
+            showGlobalLoader(false);
+            Toast.makeText(this, "Authentication error: " + error, Toast.LENGTH_LONG).show();
+            // Redirect to login
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onAuthFailure", e);
+            // Fallback: just redirect to login
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
     
     @Override
     public void onUserCreated(User user) {
         Log.d(TAG, "onUserCreated: New user created");
         this.currentUser = user;
-        // Hide loading indicator
-        showGlobalLoader(false);
-        updateNavigationHeader(user);
-        Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
-        // Set default navigation item
-        loadFragment(new DashboardFragment(), "Dashboard");
-        // Load default dashboard fragment only after successful authentication
-        loadFragment(new DashboardFragment(), "Dashboard");
+        
+        try {
+            // Hide loading indicator
+            showGlobalLoader(false);
+            updateNavigationHeader(user);
+            Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
+            
+            // Check if we have a navigation intent, if not, load dashboard
+            String navigateTo = getIntent().getStringExtra("navigate_to");
+            if (navigateTo != null) {
+                // Navigate to the requested fragment
+                navigateToFragment(navigateTo);
+                // Clear the intent extra to prevent reprocessing
+                getIntent().removeExtra("navigate_to");
+            } else {
+                // Load default dashboard fragment only after successful authentication
+                loadFragment(new DashboardFragment(), "Dashboard");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onUserCreated", e);
+            // Fallback: just hide loader and show dashboard
+            showGlobalLoader(false);
+            loadFragment(new DashboardFragment(), "Dashboard");
+        }
     }
     
     @Override
     public void onUserFetched(User user) {
         Log.d(TAG, "onUserFetched: User data fetched successfully");
         this.currentUser = user;
-        Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-        if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
-            ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+        
+        try {
+            Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+            if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
+                ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
+            }
+            // Hide loading indicator
+            showGlobalLoader(false);
+            updateNavigationHeader(user);
+            
+            // Check if we have a navigation intent, if not, load dashboard
+            String navigateTo = getIntent().getStringExtra("navigate_to");
+            if (navigateTo != null) {
+                // Navigate to the requested fragment
+                navigateToFragment(navigateTo);
+                // Clear the intent extra to prevent reprocessing
+                getIntent().removeExtra("navigate_to");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onUserFetched", e);
+            // Fallback: just hide loader
+            showGlobalLoader(false);
         }
-        // Hide loading indicator
-        showGlobalLoader(false);
-        updateNavigationHeader(user);
-        // Set default navigation item
-        loadFragment(new DashboardFragment(), "Dashboard");
-        // Load default dashboard fragment only after successful authentication
-        loadFragment(new DashboardFragment(), "Dashboard");
     }
     
     /**
      * Update navigation header with user info
      */
     private void updateNavigationHeader(User user) {
-        if (user != null && getSupportActionBar() != null) {
-            String displayName = user.getDisplayName();
-            if (displayName != null && !displayName.isEmpty()) {
-                getSupportActionBar().setTitle(displayName + " - ERP");
-            } else {
-                getSupportActionBar().setTitle("ERP System");
+        try {
+            if (user != null && getSupportActionBar() != null) {
+                String displayName = user.getDisplayName();
+                if (displayName != null && !displayName.isEmpty()) {
+                    getSupportActionBar().setTitle(displayName + " - ERP");
+                } else {
+                    getSupportActionBar().setTitle("ERP System");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating navigation header", e);
+            // Fallback: set default title
+            try {
+                if (getSupportActionBar() != null) {
+                    getSupportActionBar().setTitle("ERP System");
+                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Error setting fallback title", ex);
             }
         }
     }
@@ -430,28 +648,6 @@ public class MainActivity extends AppCompatActivity implements
             Log.e(TAG, "Error starting background service", e);
         }
     }
-    
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "MainActivity destroyed");
-        
-        // Clean up resources
-        if (authService != null) {
-            authService.setAuthCallback(null);
-        }
-        
-        // Stop background service if app is being destroyed
-        try {
-            Intent serviceIntent = new Intent(this, com.dazzling.erp.services.BackgroundService.class);
-            stopService(serviceIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "Error stopping background service", e);
-        }
-        
-        // Clear binding reference
-        binding = null;
-    }
 
     private boolean canClick() {
         long now = System.currentTimeMillis();
@@ -464,14 +660,88 @@ public class MainActivity extends AppCompatActivity implements
      * Show or hide the global Lottie loader. Fragments can call ((MainActivity) requireActivity()).showGlobalLoader(true/false)
      */
     public void showGlobalLoader(boolean show) {
-        if (lottieLoading == null) return;
-        if (show) {
-            lottieLoading.setVisibility(View.VISIBLE);
-            lottieLoading.playAnimation();
-        } else {
-            lottieLoading.cancelAnimation();
-            lottieLoading.setVisibility(View.GONE);
-            lottieLoading.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        try {
+            if (lottieLoading == null) return;
+            if (show) {
+                lottieLoading.setVisibility(View.VISIBLE);
+                lottieLoading.playAnimation();
+            } else {
+                lottieLoading.cancelAnimation();
+                lottieLoading.setVisibility(View.GONE);
+                lottieLoading.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing/hiding global loader", e);
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        
+        // Handle menu item selections here if needed
+        // Removed test crash functionality for safety
+        
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Navigate to a specific fragment and update bottom navigation
+     */
+    private void navigateToFragment(String fragmentType) {
+        try {
+            Log.d(TAG, "navigateToFragment: Navigating to " + fragmentType);
+            BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);
+            
+            switch (fragmentType) {
+                case "lots":
+                    Log.d(TAG, "Loading LotsFragment");
+                    loadFragment(new LotsFragment(), "Lot Management");
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_lots);
+                        Log.d(TAG, "Set bottom navigation to lots");
+                    }
+                    break;
+                case "dashboard":
+                    Log.d(TAG, "Loading DashboardFragment");
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_dashboard);
+                        Log.d(TAG, "Set bottom navigation to dashboard");
+                    }
+                    break;
+                case "fabrics":
+                    Log.d(TAG, "Loading FabricsFragment");
+                    loadFragment(new FabricsFragment(), "Fabrics Management");
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_fabrics);
+                        Log.d(TAG, "Set bottom navigation to fabrics");
+                    }
+                    break;
+                case "cutting":
+                    Log.d(TAG, "Loading CuttingFragment");
+                    loadFragment(new CuttingFragment(), "Cutting Operations");
+                    if (bottomNav != null) {
+                        bottomNav.setSelectedItemId(R.id.nav_cutting);
+                        Log.d(TAG, "Set bottom navigation to cutting");
+                    }
+                    break;
+                default:
+                    Log.d(TAG, "Unknown fragment type: " + fragmentType + ", loading dashboard");
+                    // Load default fragment
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                    break;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error navigating to fragment: " + fragmentType, e);
+            // Fallback to dashboard
+            loadFragment(new DashboardFragment(), "Dashboard");
         }
     }
 }

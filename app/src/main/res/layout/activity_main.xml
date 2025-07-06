@@ -19,6 +19,7 @@
         android:background="@color/white"
         app:title="@string/app_name"
         app:titleTextColor="#231F20"
+        app:titleTextAppearance="@style/Toolbar.TitleText.18sp"
         app:navigationIcon="@drawable/ic_menu"
         app:contentInsetStartWithNavigation="24dp"
         app:contentInsetEndWithActions="24dp"

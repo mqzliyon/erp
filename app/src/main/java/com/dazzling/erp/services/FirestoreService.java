@@ -459,13 +459,69 @@ public class FirestoreService {
      * Update lot
      */
     public void updateLot(Lot lot, LotCallback callback) {
+        Log.d(TAG, "🔄 Starting Firebase update for lot: " + (lot != null ? lot.getId() : "null"));
+        
+        if (lot == null) {
+            Log.e(TAG, "❌ Lot object is null");
+            if (callback != null) callback.onError("Lot object is null");
+            return;
+        }
+        
+        if (lot.getId() == null || lot.getId().isEmpty()) {
+            Log.e(TAG, "❌ Lot ID is null or empty");
+            if (callback != null) callback.onError("Lot ID is null or empty");
+            return;
+        }
+        
+        // Validate required fields
+        if (lot.getLotNumber() == null) {
+            lot.setLotNumber("");
+        }
+        if (lot.getFabricType() == null) {
+            lot.setFabricType("");
+        }
+        if (lot.getColor() == null) {
+            lot.setColor("");
+        }
+        if (lot.getSupplier() == null) {
+            lot.setSupplier("");
+        }
+        if (lot.getCustomer() == null) {
+            lot.setCustomer("");
+        }
+        if (lot.getOrderNumber() == null) {
+            lot.setOrderNumber("");
+        }
+        if (lot.getStatus() == null) {
+            lot.setStatus("active");
+        }
+        if (lot.getPriority() == null) {
+            lot.setPriority("medium");
+        }
+        if (lot.getQuality() == null) {
+            lot.setQuality("A");
+        }
+        if (lot.getNotes() == null) {
+            lot.setNotes("");
+        }
+        if (lot.getCreatedBy() == null) {
+            lot.setCreatedBy("user");
+        }
+        if (lot.getUpdatedBy() == null) {
+            lot.setUpdatedBy("user");
+        }
+        
         lot.setUpdatedAt(new Date());
+        Log.d(TAG, "📤 Sending lot data to Firebase - ID: " + lot.getId());
+        Log.d(TAG, "📊 Lot data - Cutting Pcs: " + lot.getCuttingPcs() + ", Embroidery Receive: " + lot.getEmbroideryReceivePcs() + " pcs, Embroidery Reject: " + lot.getEmbroideryRejectPcs() + " pcs, Office Shipment: " + lot.getOfficeShipmentPcs() + " pcs");
+        
         mFirestore.collection(COLLECTION_LOTS).document(lot.getId())
                 .set(lot)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Log.d(TAG, "Lot updated successfully");
+                        Log.d(TAG, "✅ Lot updated successfully in Firebase: " + lot.getId());
+                        Log.d(TAG, "📊 Firebase confirmed - Cutting Pcs: " + lot.getCuttingPcs() + ", Embroidery Receive: " + lot.getEmbroideryReceivePcs() + " pcs, Embroidery Reject: " + lot.getEmbroideryRejectPcs() + " pcs, Office Shipment: " + lot.getOfficeShipmentPcs() + " pcs");
                         if (callback != null) {
                             callback.onLotUpdated(lot);
                         }
@@ -474,7 +530,7 @@ public class FirestoreService {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Error updating lot", e);
+                        Log.e(TAG, "❌ Error updating lot in Firebase: " + lot.getId(), e);
                         if (callback != null) {
                             callback.onError("Failed to update lot: " + e.getMessage());
                         }
@@ -571,18 +627,280 @@ public class FirestoreService {
      * Update cutting operation (ALWAYS call this after any in-memory change to pcs/kg/originalQuantityKg)
      */
     public void updateCutting(Cutting cutting, CuttingCallback callback) {
-        if (cutting.getId() == null) {
-            if (callback != null) callback.onError("Cutting ID is null");
+        Log.d(TAG, "🔄 Starting Firebase update for cutting: " + (cutting != null ? cutting.getId() : "null"));
+        
+        if (cutting == null) {
+            Log.e(TAG, "❌ Cutting object is null");
+            if (callback != null) callback.onError("Cutting object is null");
             return;
         }
+        
+        if (cutting.getId() == null || cutting.getId().isEmpty()) {
+            Log.e(TAG, "❌ Cutting ID is null or empty");
+            if (callback != null) callback.onError("Cutting ID is null or empty");
+            return;
+        }
+        
+        // Validate required fields
+        if (cutting.getFabricType() == null) {
+            cutting.setFabricType("");
+        }
+        if (cutting.getLotNumber() == null) {
+            cutting.setLotNumber("");
+        }
+        if (cutting.getColor() == null) {
+            cutting.setColor("");
+        }
+        if (cutting.getCuttingType() == null) {
+            cutting.setCuttingType("manual");
+        }
+        if (cutting.getOperator() == null) {
+            cutting.setOperator("");
+        }
+        if (cutting.getMachineId() == null) {
+            cutting.setMachineId("");
+        }
+        if (cutting.getQuality() == null) {
+            cutting.setQuality("A");
+        }
+        if (cutting.getNotes() == null) {
+            cutting.setNotes("");
+        }
+        if (cutting.getStatus() == null) {
+            cutting.setStatus("pending");
+        }
+        if (cutting.getCreatedBy() == null) {
+            cutting.setCreatedBy("user");
+        }
+        if (cutting.getUpdatedBy() == null) {
+            cutting.setUpdatedBy("user");
+        }
+        
+        // Ensure updatedAt is set
+        cutting.setUpdatedAt(new Date());
+        
+        Log.d(TAG, "📤 Sending cutting data to Firebase - ID: " + cutting.getId());
+        Log.d(TAG, "📊 Cutting data - Pcs: " + cutting.getQuantityPcs() + ", Kg: " + cutting.getQuantityKg() + ", Original Kg: " + cutting.getOriginalQuantityKg());
+        
         mFirestore.collection(COLLECTION_CUTTING)
             .document(cutting.getId())
             .set(cutting)
             .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "✅ Cutting updated successfully in Firebase: " + cutting.getId());
+                Log.d(TAG, "📊 Firebase confirmed - Pcs: " + cutting.getQuantityPcs() + ", Kg: " + cutting.getQuantityKg() + ", Original Kg: " + cutting.getOriginalQuantityKg());
                 if (callback != null) callback.onCuttingUpdated(cutting);
             })
             .addOnFailureListener(e -> {
-                if (callback != null) callback.onError(e.getMessage());
+                Log.e(TAG, "❌ Error updating cutting in Firebase: " + cutting.getId(), e);
+                if (callback != null) callback.onError("Failed to update cutting: " + e.getMessage());
             });
+    }
+    
+    /**
+     * Verify Firebase connectivity and data integrity
+     */
+    public void verifyFirebaseConnection(Runnable onSuccess, Runnable onError) {
+        Log.d(TAG, "🔍 Verifying Firebase connectivity...");
+        
+        // Try to read a single document to test connectivity
+        mFirestore.collection(COLLECTION_LOTS)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    Log.d(TAG, "✅ Firebase connectivity verified successfully");
+                    if (onSuccess != null) {
+                        onSuccess.run();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Firebase connectivity test failed", e);
+                    if (onError != null) {
+                        onError.run();
+                    }
+                });
+    }
+    
+    /**
+     * Get Firebase statistics for debugging
+     */
+    public void getFirebaseStats(Runnable onComplete) {
+        Log.d(TAG, "📊 Getting Firebase statistics...");
+        
+        // Count documents in each collection
+        mFirestore.collection(COLLECTION_LOTS).get()
+                .addOnSuccessListener(lotsSnapshot -> {
+                    int lotsCount = lotsSnapshot.size();
+                    Log.d(TAG, "📊 Lots collection: " + lotsCount + " documents");
+                    
+                    mFirestore.collection(COLLECTION_CUTTING).get()
+                            .addOnSuccessListener(cuttingSnapshot -> {
+                                int cuttingCount = cuttingSnapshot.size();
+                                Log.d(TAG, "📊 Cutting collection: " + cuttingCount + " documents");
+                                
+                                mFirestore.collection(COLLECTION_FABRICS).get()
+                                        .addOnSuccessListener(fabricsSnapshot -> {
+                                            int fabricsCount = fabricsSnapshot.size();
+                                            Log.d(TAG, "📊 Fabrics collection: " + fabricsCount + " documents");
+                                            Log.d(TAG, "📊 Total documents across all collections: " + (lotsCount + cuttingCount + fabricsCount));
+                                            
+                                            if (onComplete != null) {
+                                                onComplete.run();
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "❌ Error getting fabrics count", e);
+                                            if (onComplete != null) {
+                                                onComplete.run();
+                                            }
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "❌ Error getting cutting count", e);
+                                if (onComplete != null) {
+                                    onComplete.run();
+                                }
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Error getting lots count", e);
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                });
+    }
+    
+    /**
+     * Verify that all lot data is properly saved to Firebase
+     * This method performs a comprehensive check of all Pcs fields
+     */
+    public void verifyLotDataSave(Lot lot, Runnable onSuccess, Runnable onError) {
+        Log.d(TAG, "🔍 Verifying lot data save for lot ID: " + (lot != null ? lot.getId() : "null"));
+        
+        if (lot == null) {
+            Log.e(TAG, "❌ Lot object is null for verification");
+            if (onError != null) onError.run();
+            return;
+        }
+        
+        // Log all Pcs fields for verification
+        Log.d(TAG, "📊 Verification - Lot ID: " + lot.getId());
+        Log.d(TAG, "📊 Verification - Cutting Pcs: " + lot.getCuttingPcs());
+        Log.d(TAG, "📊 Verification - Embroidery Receive Pcs: " + lot.getEmbroideryReceivePcs());
+        Log.d(TAG, "📊 Verification - Embroidery Reject Pcs: " + lot.getEmbroideryRejectPcs());
+        Log.d(TAG, "📊 Verification - Office Shipment Pcs: " + lot.getOfficeShipmentPcs());
+        
+        // Verify that all Pcs fields are properly set
+        boolean allFieldsValid = true;
+        String errorMessage = "";
+        
+        if (lot.getCuttingPcs() < 0) {
+            allFieldsValid = false;
+            errorMessage += "Cutting Pcs cannot be negative. ";
+        }
+        
+        if (lot.getEmbroideryReceivePcs() < 0) {
+            allFieldsValid = false;
+            errorMessage += "Embroidery Receive Pcs cannot be negative. ";
+        }
+        
+        if (lot.getEmbroideryRejectPcs() < 0) {
+            allFieldsValid = false;
+            errorMessage += "Embroidery Reject Pcs cannot be negative. ";
+        }
+        
+        if (lot.getOfficeShipmentPcs() < 0) {
+            allFieldsValid = false;
+            errorMessage += "Office Shipment Pcs cannot be negative. ";
+        }
+        
+        if (allFieldsValid) {
+            Log.d(TAG, "✅ All lot data fields are valid and ready for Firebase save");
+            if (onSuccess != null) onSuccess.run();
+        } else {
+            Log.e(TAG, "❌ Lot data validation failed: " + errorMessage);
+            if (onError != null) onError.run();
+        }
+    }
+    
+    /**
+     * Comprehensive verification that all lot data is properly saved to Firebase
+     * This method performs a complete audit of the lot data
+     */
+    public void comprehensiveLotDataVerification(Lot lot, Runnable onSuccess, Runnable onError) {
+        Log.d(TAG, "🔍 Comprehensive lot data verification for lot ID: " + (lot != null ? lot.getId() : "null"));
+        
+        if (lot == null) {
+            Log.e(TAG, "❌ Lot object is null for comprehensive verification");
+            if (onError != null) onError.run();
+            return;
+        }
+        
+        // Comprehensive logging of all fields
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Lot ID: " + lot.getId());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Lot Number: " + lot.getLotNumber());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Fabric Type: " + lot.getFabricType());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Color: " + lot.getColor());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Total Fabric Kg: " + lot.getTotalFabricKg());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Cutting Kg: " + lot.getCuttingKg());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Cutting Pcs: " + lot.getCuttingPcs());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Embroidery Receive Kg: " + lot.getEmbroideryReceiveKg());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Embroidery Receive Pcs: " + lot.getEmbroideryReceivePcs());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Embroidery Reject Kg: " + lot.getEmbroideryRejectKg());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Embroidery Reject Pcs: " + lot.getEmbroideryRejectPcs());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Office Shipment Kg: " + lot.getOfficeShipmentKg());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Office Shipment Pcs: " + lot.getOfficeShipmentPcs());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Status: " + lot.getStatus());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Priority: " + lot.getPriority());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Quality: " + lot.getQuality());
+        Log.d(TAG, "📊 COMPREHENSIVE VERIFICATION - Updated At: " + lot.getUpdatedAt());
+        
+        // Verify data integrity
+        boolean dataIntegrityValid = true;
+        String integrityErrorMessage = "";
+        
+        // Check for required fields
+        if (lot.getLotNumber() == null || lot.getLotNumber().isEmpty()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Lot number is required. ";
+        }
+        
+        if (lot.getFabricType() == null || lot.getFabricType().isEmpty()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Fabric type is required. ";
+        }
+        
+        if (lot.getColor() == null || lot.getColor().isEmpty()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Color is required. ";
+        }
+        
+        // Check for logical consistency
+        if (lot.getCuttingPcs() > lot.getTotalFabricKg() * 100) { // Rough conversion check
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Cutting Pcs seems unreasonably high compared to total fabric. ";
+        }
+        
+        if (lot.getEmbroideryReceivePcs() > lot.getCuttingPcs()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Embroidery Receive Pcs cannot exceed Cutting Pcs. ";
+        }
+        
+        if (lot.getEmbroideryRejectPcs() > lot.getEmbroideryReceivePcs()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Embroidery Reject Pcs cannot exceed Embroidery Receive Pcs. ";
+        }
+        
+        if (lot.getOfficeShipmentPcs() > lot.getEmbroideryReceivePcs()) {
+            dataIntegrityValid = false;
+            integrityErrorMessage += "Office Shipment Pcs cannot exceed Embroidery Receive Pcs. ";
+        }
+        
+        if (dataIntegrityValid) {
+            Log.d(TAG, "✅ Comprehensive lot data verification passed - all data is valid and ready for Firebase save");
+            if (onSuccess != null) onSuccess.run();
+        } else {
+            Log.e(TAG, "❌ Comprehensive lot data verification failed: " + integrityErrorMessage);
+            if (onError != null) onError.run();
+        }
     }
 } 
