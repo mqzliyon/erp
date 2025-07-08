@@ -70,6 +70,10 @@
         app:layout_constraintTop_toBottomOf="@id/menu_underline"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Factory Balance A Grade Section -->
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

@@ -11,6 +11,7 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,13 +36,18 @@ import android.widget.Toast;
 import android.widget.EditText;
 import android.widget.DatePicker;
 import android.app.DatePickerDialog;
-import android.app.AlertDialog;
 import android.text.TextUtils;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import com.dazzling.erp.services.FirestoreService;
 import com.airbnb.lottie.LottieAnimationView;
+import android.widget.ArrayAdapter;
+import android.text.InputType;
+import java.util.Date;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import android.widget.Button;
 
 public class LotDetailActivity extends AppCompatActivity {
 
@@ -65,6 +71,7 @@ public class LotDetailActivity extends AppCompatActivity {
     };
 
     private int selectedTab = 0;
+    private int previousTab = 0; // Track previous main tab
     private LinearLayout menuBar;
     private FrameLayout contentContainer;
     private Handler chartHandler;
@@ -90,10 +97,29 @@ public class LotDetailActivity extends AppCompatActivity {
     private LineDataSet officeShipmentDataSet;
     private TextView officeShipmentBalanceText;
     
+    // Factory Balance sub-menu variables
+    private int selectedFactoryBalanceTab = 0; // 0 = Total, 1 = A Grade, 2 = B Grade
+    private LinearLayout factoryBalanceSubMenuBar;
+    private TextView factoryBalanceTotalText;
+    private TextView factoryBalanceAGradeText;
+    private TextView factoryBalanceBGradeText;
+    
+    // Factory Balance chart variables
+    private LineChart factoryBalanceTotalChart;
+    private LineChart factoryBalanceAGradeChart;
+    private LineChart factoryBalanceBGradeChart;
+    private LineDataSet factoryBalanceTotalDataSet;
+    private LineDataSet factoryBalanceAGradeDataSet;
+    private LineDataSet factoryBalanceBGradeDataSet;
+    
     // Lot data
     private String lotId;
     private com.dazzling.erp.models.Lot currentLot;
     private com.dazzling.erp.services.FirestoreService firestoreService;
+
+    private LineChart factoryBalanceAGradeRejectChart;
+    private LineDataSet factoryBalanceAGradeRejectDataSet;
+    private TextView factoryBalanceAGradeRejectText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -388,6 +414,12 @@ public class LotDetailActivity extends AppCompatActivity {
 
     // Show content for the selected tab
     private void showTabContent(int tabIndex, boolean animate) {
+        // Only reset selectedFactoryBalanceTab if switching from a different tab
+        if (tabIndex == 3 && previousTab != 3) {
+            selectedFactoryBalanceTab = 0;
+        }
+        previousTab = selectedTab;
+        selectedTab = tabIndex;
         contentContainer.removeAllViews();
         View contentView;
         switch (tabIndex) {
@@ -403,6 +435,8 @@ public class LotDetailActivity extends AppCompatActivity {
                 contentView = createOfficeShipmentContent();
                 break;
             case 3: // Factory Balance
+                contentView = createFactoryBalanceContent();
+                break;
             default:
                 contentView = createPlaceholderContent(menuTabs[tabIndex].label);
                 break;
@@ -420,6 +454,14 @@ public class LotDetailActivity extends AppCompatActivity {
             // Small delay to ensure the view is properly added
             new Handler(Looper.getMainLooper()).post(() -> {
                 showEmbroiderySubContent(selectedEmbroideryTab);
+            });
+        }
+        
+        // If it's factory balance tab, ensure the total content is shown
+        if (tabIndex == 3) {
+            // Small delay to ensure the view is properly added
+            new Handler(Looper.getMainLooper()).post(() -> {
+                showFactoryBalanceSubContent(selectedFactoryBalanceTab);
             });
         }
     }
@@ -623,6 +665,85 @@ public class LotDetailActivity extends AppCompatActivity {
         return mainContainer;
     }
 
+    // Factory Balance tab content: Card with sub-menu and content
+    private View createFactoryBalanceContent() {
+        // Main container
+        LinearLayout mainContainer = new LinearLayout(this);
+        mainContainer.setOrientation(LinearLayout.VERTICAL);
+        mainContainer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Sub-menu bar (horizontal scrollable)
+        HorizontalScrollView scrollView = new HorizontalScrollView(this);
+        scrollView.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        scrollView.setPadding(dp(16), dp(4), dp(16), dp(8)); // Reduced top padding
+        scrollView.setBackgroundColor(Color.parseColor("#EDEEF3"));
+        scrollView.setHorizontalScrollBarEnabled(false);
+        scrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scrollView.setMinimumHeight(dp(56)); // Ensure minimum height for visibility
+
+        factoryBalanceSubMenuBar = new LinearLayout(this);
+        factoryBalanceSubMenuBar.setOrientation(LinearLayout.HORIZONTAL);
+        factoryBalanceSubMenuBar.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        factoryBalanceSubMenuBar.setPadding(dp(8), dp(8), dp(8), dp(8));
+        factoryBalanceSubMenuBar.setGravity(Gravity.CENTER_HORIZONTAL);
+        factoryBalanceSubMenuBar.setMinimumHeight(dp(48)); // Ensure minimum height for visibility
+
+        // Create sub-menu tabs
+        String[] factoryBalanceTabs = {"Total Balance", "A Grade", "B Grade"};
+        for (int i = 0; i < factoryBalanceTabs.length; i++) {
+            final int index = i;
+            LinearLayout subTab = createFactoryBalanceSubTab(factoryBalanceTabs[i], i == selectedFactoryBalanceTab);
+            subTab.setOnClickListener(v -> {
+                if (selectedFactoryBalanceTab != index) {
+                    selectedFactoryBalanceTab = index;
+                    updateFactoryBalanceSubMenu();
+                    showFactoryBalanceSubContent(index);
+                }
+            });
+            factoryBalanceSubMenuBar.addView(subTab);
+            Log.d("FactoryBalanceSubMenu", "Added sub-tab: " + factoryBalanceTabs[i]);
+        }
+
+        scrollView.addView(factoryBalanceSubMenuBar);
+        mainContainer.addView(scrollView);
+        
+        // Update the sub-menu to ensure proper styling
+        updateFactoryBalanceSubMenu();
+        
+        // Add underline after the scroll view
+        View underline = new View(this);
+        LinearLayout.LayoutParams underlineParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        underlineParams.setMargins(0, 0, 0, 0); // Remove any margins
+        underline.setLayoutParams(underlineParams);
+        underline.setBackgroundColor(Color.parseColor("#666666"));
+        mainContainer.addView(underline);
+        
+        // Center the scroll view content
+        scrollView.post(() -> {
+            int scrollViewWidth = scrollView.getWidth();
+            int menuBarWidth = factoryBalanceSubMenuBar.getWidth();
+            if (scrollViewWidth > menuBarWidth) {
+                int scrollX = (menuBarWidth - scrollViewWidth) / 2;
+                scrollView.scrollTo(scrollX, 0);
+            }
+        });
+
+        // Content container
+        FrameLayout factoryBalanceContentContainer = new FrameLayout(this);
+        factoryBalanceContentContainer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        mainContainer.addView(factoryBalanceContentContainer);
+
+        // Show initial content (Total Balance by default)
+        // Small delay to ensure the view hierarchy is properly set up
+        new Handler(Looper.getMainLooper()).post(() -> {
+            Log.d("FactoryBalanceContent", "Showing initial content for tab: " + selectedFactoryBalanceTab);
+            showFactoryBalanceSubContent(selectedFactoryBalanceTab);
+        });
+
+        Log.d("FactoryBalanceContent", "Created factory balance content with " + factoryBalanceSubMenuBar.getChildCount() + " sub-tabs");
+        return mainContainer;
+    }
+
     // Create embroidery sub-tab
     private LinearLayout createEmbroiderySubTab(String label, boolean selected) {
         LinearLayout tabLayout = new LinearLayout(this);
@@ -653,6 +774,91 @@ public class LotDetailActivity extends AppCompatActivity {
         // Ripple effect
         tabLayout.setForeground(ContextCompat.getDrawable(this, R.drawable.ripple_effect));
         return tabLayout;
+    }
+
+    // Create factory balance sub-tab
+    private LinearLayout createFactoryBalanceSubTab(String label, boolean selected) {
+        LinearLayout tabLayout = new LinearLayout(this);
+        tabLayout.setOrientation(LinearLayout.HORIZONTAL);
+        tabLayout.setGravity(Gravity.CENTER);
+        int padH = dp(16);
+        int padV = dp(8);
+        tabLayout.setPadding(padH, padV, padH, padV);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(12), 0, dp(12), 0); // Add horizontal gap between tabs
+        tabLayout.setLayoutParams(lp);
+        tabLayout.setClickable(true);
+        tabLayout.setFocusable(true);
+        tabLayout.setMinimumHeight(dp(40)); // Ensure minimum height
+        setFactoryBalanceSubTabBackground(tabLayout, selected);
+        tabLayout.setElevation(selected ? dp(4) : dp(0));
+
+        // Label
+        TextView labelView = new TextView(this);
+        labelView.setText(label);
+        labelView.setTextSize(14);
+        labelView.setTypeface(null, selected ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        labelView.setTextColor(selected ? Color.WHITE : Color.BLACK);
+        tabLayout.addView(labelView);
+        
+        Log.d("FactoryBalanceSubTab", "Created sub-tab with label: " + label + ", selected: " + selected);
+
+        // Ripple effect
+        tabLayout.setForeground(ContextCompat.getDrawable(this, R.drawable.ripple_effect));
+        return tabLayout;
+    }
+
+    // Set factory balance sub-tab background
+    private void setFactoryBalanceSubTabBackground(LinearLayout tabLayout, boolean selected) {
+        TextView label = null;
+        // Find TextView in tabLayout
+        for (int i = 0; i < tabLayout.getChildCount(); i++) {
+            View child = tabLayout.getChildAt(i);
+            if (child instanceof TextView) {
+                label = (TextView) child;
+                break;
+            }
+        }
+        
+        if (selected) {
+            android.graphics.drawable.GradientDrawable solid = new android.graphics.drawable.GradientDrawable();
+            solid.setColor(android.graphics.Color.rgb(158, 231, 114));
+            solid.setCornerRadius(dp(25));
+            tabLayout.setBackground(solid);
+            if (label != null) {
+                label.setTextColor(android.graphics.Color.WHITE);
+                label.setTypeface(null, android.graphics.Typeface.BOLD);
+            }
+        } else {
+            ShapeAppearanceModel shape = new ShapeAppearanceModel()
+                    .toBuilder()
+                    .setAllCorners(CornerFamily.ROUNDED, dp(25))
+                    .build();
+            MaterialShapeDrawable bg = new MaterialShapeDrawable(shape);
+            bg.setFillColor(android.content.res.ColorStateList.valueOf(Color.WHITE));
+            bg.setElevation(0);
+            tabLayout.setBackground(bg);
+            if (label != null) {
+                label.setTextColor(Color.BLACK);
+                label.setTypeface(null, android.graphics.Typeface.NORMAL);
+            }
+        }
+    }
+
+    // Update factory balance sub-menu appearance
+    private void updateFactoryBalanceSubMenu() {
+        if (factoryBalanceSubMenuBar != null) {
+            Log.d("FactoryBalanceSubMenu", "Updating sub-menu with " + factoryBalanceSubMenuBar.getChildCount() + " tabs, selected: " + selectedFactoryBalanceTab);
+            for (int i = 0; i < factoryBalanceSubMenuBar.getChildCount(); i++) {
+                LinearLayout tabView = (LinearLayout) factoryBalanceSubMenuBar.getChildAt(i);
+                boolean isSelected = (i == selectedFactoryBalanceTab);
+                setFactoryBalanceSubTabBackground(tabView, isSelected);
+                tabView.setElevation(isSelected ? dp(4) : dp(0));
+                tabView.animate().scaleX(isSelected ? 1.05f : 1f).scaleY(isSelected ? 1.05f : 1f).setDuration(150).start();
+            }
+        } else {
+            Log.e("FactoryBalanceSubMenu", "factoryBalanceSubMenuBar is null");
+        }
     }
 
     // Set embroidery sub-tab background
@@ -756,6 +962,58 @@ public class LotDetailActivity extends AppCompatActivity {
         }
     }
 
+    // Show factory balance sub-content
+    private void showFactoryBalanceSubContent(int subTabIndex) {
+        Log.d("FactoryBalanceSubContent", "Showing sub-content for index: " + subTabIndex);
+        
+        // Find the content container (third child of main container after scroll view and underline)
+        if (contentContainer.getChildCount() > 0) {
+            View mainContainer = contentContainer.getChildAt(0);
+            if (mainContainer instanceof LinearLayout) {
+                LinearLayout container = (LinearLayout) mainContainer;
+                Log.d("FactoryBalanceSubContent", "Container child count: " + container.getChildCount());
+                
+                if (container.getChildCount() > 2) {
+                    FrameLayout factoryBalanceContentContainer = (FrameLayout) container.getChildAt(2);
+                    factoryBalanceContentContainer.removeAllViews();
+                    
+                    View subContent;
+                    switch (subTabIndex) {
+                        case 0: // Total Balance
+                            subContent = createFactoryBalanceTotalContent();
+                            Log.d("FactoryBalanceSubContent", "Created Total Balance content");
+                            break;
+                        case 1: // A Grade
+                            subContent = createFactoryBalanceAGradeContent();
+                            Log.d("FactoryBalanceSubContent", "Created A Grade content");
+                            break;
+                        case 2: // B Grade
+                            subContent = createFactoryBalanceBGradeContent();
+                            Log.d("FactoryBalanceSubContent", "Created B Grade content");
+                            break;
+                        default:
+                            subContent = createPlaceholderContent("Factory Balance");
+                            Log.d("FactoryBalanceSubContent", "Created placeholder content");
+                            break;
+                    }
+                    
+                    factoryBalanceContentContainer.addView(subContent);
+                    
+                    // Force layout update
+                    factoryBalanceContentContainer.requestLayout();
+                    factoryBalanceContentContainer.invalidate();
+                    Log.d("FactoryBalanceSubContent", "Content added and layout updated");
+                } else {
+                    Log.e("FactoryBalanceSubContent", "Container doesn't have enough children. Expected > 2, got: " + container.getChildCount());
+                }
+            } else {
+                Log.e("FactoryBalanceSubContent", "Main container is not LinearLayout");
+            }
+        } else {
+            Log.e("FactoryBalanceSubContent", "Content container has no children");
+        }
+    }
+
     // Embroidery Receive content
     private View createEmbroideryReceiveContent() {
         // CardView container
@@ -820,34 +1078,7 @@ public class LotDetailActivity extends AppCompatActivity {
         factoryBtn.setTextColor(Color.BLACK);
         factoryBtn.setBackgroundColor(Color.parseColor("#FF9800")); // Orange color
         factoryBtn.setOnClickListener(v -> {
-            // Show loading animation
-            showLoading(true);
-            
-            // Disable button to prevent multiple clicks
-            factoryBtn.setEnabled(false);
-            
-            // Simulate factory process with delay
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                // Show progress message
-                Toast.makeText(this, "Processing factory transfer...", Toast.LENGTH_SHORT).show();
-                
-                // Simulate another delay for the actual factory transfer
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    // Hide loading and show success message
-                    showLoading(false);
-                    
-                    // Show success message with details
-                    String successMessage = "🏭 Successfully sent to factory!";
-                    Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show();
-                    
-                    // Re-enable button
-                    factoryBtn.setEnabled(true);
-                    
-                    // Update the embroidery receive balance and chart
-                    updateEmbroideryReceiveBalance();
-                    startEmbroideryReceiveChartSimulation();
-                }, 1500); // 1.5 second delay for factory simulation
-            }, 1000); // 1 second delay for initial processing
+            showSendToFactoryBalanceDialog();
         });
 
         vbox.addView(factoryBtn);
@@ -1106,6 +1337,576 @@ public class LotDetailActivity extends AppCompatActivity {
         }
         
         embroideryRejectChart.invalidate();
+    }
+
+    // Update factory balance total
+    private void updateFactoryBalanceTotal() {
+        if (factoryBalanceTotalText != null && currentLot != null) {
+            // Use the actual factory balance total data from the lot
+            int totalPcs = currentLot.getTotalFactoryBalancePcs();
+            factoryBalanceTotalText.setText("Total Factory Balance: " + totalPcs + " Pcs.");
+        }
+    }
+
+    // Update factory balance A Grade
+    private void updateFactoryBalanceAGrade() {
+        if (factoryBalanceAGradeText != null && currentLot != null) {
+            // Use the actual factory balance A Grade data from the lot
+            int aGradePcs = currentLot.getFactoryBalanceAGradePcs();
+            factoryBalanceAGradeText.setText("A Grade Balance: " + aGradePcs + " Pcs.");
+        }
+    }
+
+    // Update factory balance B Grade
+    private void updateFactoryBalanceBGrade() {
+        if (factoryBalanceBGradeText != null && currentLot != null) {
+            // Use the actual factory balance B Grade data from the lot
+            int bGradePcs = currentLot.getFactoryBalanceBGradePcs();
+            factoryBalanceBGradeText.setText("B Grade Balance: " + bGradePcs + " Pcs.");
+        }
+    }
+
+    // Factory Balance Total Chart Simulation
+    private void startFactoryBalanceTotalChartSimulation() {
+        if (factoryBalanceTotalChart == null) return;
+        
+        // Get the current factory balance total from the lot data
+        int currentBalance = 0;
+        if (currentLot != null) {
+            currentBalance = currentLot.getTotalFactoryBalancePcs();
+        }
+        
+        List<Entry> entries = new ArrayList<>();
+        
+        // Create a realistic chart based on the current balance
+        // Show the last 7 days with the current balance as the peak
+        for (int i = 0; i < 7; i++) {
+            float value;
+            if (i == 6) { // Today - show current balance
+                value = currentBalance;
+            } else if (i == 5) { // Yesterday - show slightly lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.1f));
+            } else if (i == 4) { // 2 days ago - show even lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.2f));
+            } else { // Earlier days - show progression from 0 to current
+                float progress = (float) i / 5f; // 0 to 1 over 5 days
+                value = Math.max(0, (int)(currentBalance * progress * 0.8f));
+            }
+            entries.add(new Entry(i, value));
+        }
+        
+        factoryBalanceTotalDataSet = new LineDataSet(entries, "Factory Balance Total");
+        factoryBalanceTotalDataSet.setColor(Color.parseColor("#9C27B0")); // Purple color for total
+        factoryBalanceTotalDataSet.setCircleColor(Color.parseColor("#9C27B0"));
+        factoryBalanceTotalDataSet.setLineWidth(3f);
+        factoryBalanceTotalDataSet.setCircleRadius(5f);
+        factoryBalanceTotalDataSet.setDrawValues(true);
+        factoryBalanceTotalDataSet.setValueTextSize(10f);
+        factoryBalanceTotalDataSet.setValueTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceTotalDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        factoryBalanceTotalDataSet.setDrawCircles(true);
+        factoryBalanceTotalDataSet.setDrawCircleHole(true);
+        factoryBalanceTotalDataSet.setCircleHoleColor(Color.WHITE);
+        
+        LineData data = new LineData(factoryBalanceTotalDataSet);
+        factoryBalanceTotalChart.setData(data);
+        
+        // Configure chart appearance
+        factoryBalanceTotalChart.getXAxis().setDrawLabels(true);
+        factoryBalanceTotalChart.getXAxis().setGranularity(1f);
+        factoryBalanceTotalChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        
+        // Configure axes
+        factoryBalanceTotalChart.getAxisRight().setEnabled(false);
+        factoryBalanceTotalChart.getAxisLeft().setDrawGridLines(true);
+        factoryBalanceTotalChart.getAxisLeft().setGridColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        factoryBalanceTotalChart.getAxisLeft().setGridLineWidth(0.5f);
+        factoryBalanceTotalChart.getXAxis().setDrawGridLines(false);
+        factoryBalanceTotalChart.getLegend().setEnabled(false);
+        
+        // Set Y-axis label
+        factoryBalanceTotalChart.getAxisLeft().setAxisMinimum(0f);
+        if (currentBalance > 0) {
+            factoryBalanceTotalChart.getAxisLeft().setAxisMaximum(currentBalance * 1.2f);
+        } else {
+            factoryBalanceTotalChart.getAxisLeft().setAxisMaximum(50f); // Lower default for empty state
+        }
+        
+        factoryBalanceTotalChart.invalidate();
+    }
+
+    // Factory Balance A Grade Chart Simulation
+    private void startFactoryBalanceAGradeChartSimulation() {
+        if (factoryBalanceAGradeChart == null) return;
+        
+        // Get the current factory balance A Grade from the lot data
+        int currentBalance = 0;
+        if (currentLot != null) {
+            currentBalance = currentLot.getFactoryBalanceAGradePcs();
+        }
+        
+        List<Entry> entries = new ArrayList<>();
+        
+        // Create a realistic chart based on the current balance
+        // Show the last 7 days with the current balance as the peak
+        for (int i = 0; i < 7; i++) {
+            float value;
+            if (i == 6) { // Today - show current balance
+                value = currentBalance;
+            } else if (i == 5) { // Yesterday - show slightly lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.1f));
+            } else if (i == 4) { // 2 days ago - show even lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.2f));
+            } else { // Earlier days - show progression from 0 to current
+                float progress = (float) i / 5f; // 0 to 1 over 5 days
+                value = Math.max(0, (int)(currentBalance * progress * 0.8f));
+            }
+            entries.add(new Entry(i, value));
+        }
+        
+        factoryBalanceAGradeDataSet = new LineDataSet(entries, "Factory Balance A Grade");
+        factoryBalanceAGradeDataSet.setColor(Color.parseColor("#4CAF50")); // Green color for A Grade
+        factoryBalanceAGradeDataSet.setCircleColor(Color.parseColor("#4CAF50"));
+        factoryBalanceAGradeDataSet.setLineWidth(3f);
+        factoryBalanceAGradeDataSet.setCircleRadius(5f);
+        factoryBalanceAGradeDataSet.setDrawValues(true);
+        factoryBalanceAGradeDataSet.setValueTextSize(10f);
+        factoryBalanceAGradeDataSet.setValueTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceAGradeDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        factoryBalanceAGradeDataSet.setDrawCircles(true);
+        factoryBalanceAGradeDataSet.setDrawCircleHole(true);
+        factoryBalanceAGradeDataSet.setCircleHoleColor(Color.WHITE);
+        
+        LineData data = new LineData(factoryBalanceAGradeDataSet);
+        factoryBalanceAGradeChart.setData(data);
+        
+        // Configure chart appearance
+        factoryBalanceAGradeChart.getXAxis().setDrawLabels(true);
+        factoryBalanceAGradeChart.getXAxis().setGranularity(1f);
+        factoryBalanceAGradeChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        
+        // Configure axes
+        factoryBalanceAGradeChart.getAxisRight().setEnabled(false);
+        factoryBalanceAGradeChart.getAxisLeft().setDrawGridLines(true);
+        factoryBalanceAGradeChart.getAxisLeft().setGridColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        factoryBalanceAGradeChart.getAxisLeft().setGridLineWidth(0.5f);
+        factoryBalanceAGradeChart.getXAxis().setDrawGridLines(false);
+        factoryBalanceAGradeChart.getLegend().setEnabled(false);
+        
+        // Set Y-axis label
+        factoryBalanceAGradeChart.getAxisLeft().setAxisMinimum(0f);
+        if (currentBalance > 0) {
+            factoryBalanceAGradeChart.getAxisLeft().setAxisMaximum(currentBalance * 1.2f);
+        } else {
+            factoryBalanceAGradeChart.getAxisLeft().setAxisMaximum(50f); // Lower default for empty state
+        }
+        
+        factoryBalanceAGradeChart.invalidate();
+    }
+
+    // Factory Balance B Grade Chart Simulation
+    private void startFactoryBalanceBGradeChartSimulation() {
+        if (factoryBalanceBGradeChart == null) return;
+        
+        // Get the current factory balance B Grade from the lot data
+        int currentBalance = 0;
+        if (currentLot != null) {
+            currentBalance = currentLot.getFactoryBalanceBGradePcs();
+        }
+        
+        List<Entry> entries = new ArrayList<>();
+        
+        // Create a realistic chart based on the current balance
+        // Show the last 7 days with the current balance as the peak
+        for (int i = 0; i < 7; i++) {
+            float value;
+            if (i == 6) { // Today - show current balance
+                value = currentBalance;
+            } else if (i == 5) { // Yesterday - show slightly lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.1f));
+            } else if (i == 4) { // 2 days ago - show even lower
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.2f));
+            } else { // Earlier days - show progression from 0 to current
+                float progress = (float) i / 5f; // 0 to 1 over 5 days
+                value = Math.max(0, (int)(currentBalance * progress * 0.8f));
+            }
+            entries.add(new Entry(i, value));
+        }
+        
+        factoryBalanceBGradeDataSet = new LineDataSet(entries, "Factory Balance B Grade");
+        factoryBalanceBGradeDataSet.setColor(Color.parseColor("#FF9800")); // Orange color for B Grade
+        factoryBalanceBGradeDataSet.setCircleColor(Color.parseColor("#FF9800"));
+        factoryBalanceBGradeDataSet.setLineWidth(3f);
+        factoryBalanceBGradeDataSet.setCircleRadius(5f);
+        factoryBalanceBGradeDataSet.setDrawValues(true);
+        factoryBalanceBGradeDataSet.setValueTextSize(10f);
+        factoryBalanceBGradeDataSet.setValueTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceBGradeDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        factoryBalanceBGradeDataSet.setDrawCircles(true);
+        factoryBalanceBGradeDataSet.setDrawCircleHole(true);
+        factoryBalanceBGradeDataSet.setCircleHoleColor(Color.WHITE);
+        
+        LineData data = new LineData(factoryBalanceBGradeDataSet);
+        factoryBalanceBGradeChart.setData(data);
+        
+        // Configure chart appearance
+        factoryBalanceBGradeChart.getXAxis().setDrawLabels(true);
+        factoryBalanceBGradeChart.getXAxis().setGranularity(1f);
+        factoryBalanceBGradeChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        
+        // Configure axes
+        factoryBalanceBGradeChart.getAxisRight().setEnabled(false);
+        factoryBalanceBGradeChart.getAxisLeft().setDrawGridLines(true);
+        factoryBalanceBGradeChart.getAxisLeft().setGridColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        factoryBalanceBGradeChart.getAxisLeft().setGridLineWidth(0.5f);
+        factoryBalanceBGradeChart.getXAxis().setDrawGridLines(false);
+        factoryBalanceBGradeChart.getLegend().setEnabled(false);
+        
+        // Set Y-axis label
+        factoryBalanceBGradeChart.getAxisLeft().setAxisMinimum(0f);
+        if (currentBalance > 0) {
+            factoryBalanceBGradeChart.getAxisLeft().setAxisMaximum(currentBalance * 1.2f);
+        } else {
+            factoryBalanceBGradeChart.getAxisLeft().setAxisMaximum(50f); // Lower default for empty state
+        }
+        
+        factoryBalanceBGradeChart.invalidate();
+    }
+
+    // Factory Balance Total content
+    private View createFactoryBalanceTotalContent() {
+        // CardView container
+        CardView card = new CardView(this);
+        card.setRadius(dp(20));
+        card.setCardElevation(dp(6));
+        card.setUseCompatPadding(true);
+        FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.setMargins(dp(16), dp(16), dp(16), dp(24));
+        card.setLayoutParams(cardLp);
+        card.setContentPadding(dp(20), dp(20), dp(20), dp(20));
+
+        LinearLayout vbox = new LinearLayout(this);
+        vbox.setOrientation(LinearLayout.VERTICAL);
+        vbox.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Chart
+        factoryBalanceTotalChart = new LineChart(this);
+        factoryBalanceTotalChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        factoryBalanceTotalChart.setNoDataText("Loading chart...");
+        factoryBalanceTotalChart.setTouchEnabled(false);
+        factoryBalanceTotalChart.setDescription(new Description());
+        vbox.addView(factoryBalanceTotalChart);
+
+        // Factory Balance Total
+        factoryBalanceTotalText = new TextView(this);
+        if (currentLot != null) {
+            // Use the actual factory balance total data from the lot
+            int totalPcs = currentLot.getTotalFactoryBalancePcs();
+            factoryBalanceTotalText.setText("Total Factory Balance: " + totalPcs + " Pcs.");
+        } else {
+            factoryBalanceTotalText.setText("Total Factory Balance: 0 Pcs.");
+        }
+        factoryBalanceTotalText.setTextSize(14);
+        factoryBalanceTotalText.setTypeface(null, android.graphics.Typeface.BOLD);
+        factoryBalanceTotalText.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceTotalText.setPadding(0, dp(16), 0, dp(16));
+        vbox.addView(factoryBalanceTotalText);
+
+        // Add to A Grade Button
+        MaterialButton aGradeBtn = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        aGradeBtn.setText("History");
+        aGradeBtn.setCornerRadius(dp(30));
+        aGradeBtn.setTextSize(16);
+        aGradeBtn.setElevation(dp(4));
+        aGradeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        aGradeBtn.setTextColor(Color.WHITE);
+        aGradeBtn.setBackgroundColor(Color.parseColor("#1976D2")); // Blue color for History
+        aGradeBtn.setOnClickListener(v -> {
+            showHistoryDialog();
+        });
+
+        vbox.addView(aGradeBtn);
+
+        card.addView(vbox);
+        
+        // Start chart simulation
+        startFactoryBalanceTotalChartSimulation();
+        return card;
+    }
+
+    // Factory Balance A Grade content
+    private View createFactoryBalanceAGradeContent() {
+        // CardView container
+        CardView card = new CardView(this);
+        card.setRadius(dp(20));
+        card.setCardElevation(dp(6));
+        card.setUseCompatPadding(true);
+        FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.setMargins(dp(16), dp(16), dp(16), dp(24));
+        card.setLayoutParams(cardLp);
+        card.setContentPadding(dp(20), dp(20), dp(20), dp(20));
+
+        LinearLayout vbox = new LinearLayout(this);
+        vbox.setOrientation(LinearLayout.VERTICAL);
+        vbox.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Chart
+        factoryBalanceAGradeChart = new com.github.mikephil.charting.charts.LineChart(this);
+        factoryBalanceAGradeChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        factoryBalanceAGradeChart.setNoDataText("Loading chart...");
+        factoryBalanceAGradeChart.setTouchEnabled(false);
+        factoryBalanceAGradeChart.setDescription(new com.github.mikephil.charting.components.Description());
+        vbox.addView(factoryBalanceAGradeChart);
+
+        // Factory Balance A Grade
+        factoryBalanceAGradeText = new TextView(this);
+        if (currentLot != null) {
+            int aGradePcs = currentLot.getFactoryBalanceAGradePcs();
+            factoryBalanceAGradeText.setText("A Grade Balance: " + aGradePcs + " Pcs.");
+        } else {
+            factoryBalanceAGradeText.setText("A Grade Balance: 0 Pcs.");
+        }
+        factoryBalanceAGradeText.setTextSize(14);
+        factoryBalanceAGradeText.setTypeface(null, android.graphics.Typeface.BOLD);
+        factoryBalanceAGradeText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceAGradeText.setPadding(0, dp(16), 0, dp(16));
+        vbox.addView(factoryBalanceAGradeText);
+
+        // Send to Office Button
+        com.google.android.material.button.MaterialButton officeBtn = new com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        officeBtn.setText("Send to Office");
+        officeBtn.setCornerRadius(dp(30));
+        officeBtn.setTextSize(16);
+        officeBtn.setElevation(dp(4));
+        officeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        officeBtn.setTextColor(android.graphics.Color.BLACK);
+        officeBtn.setBackgroundColor(android.graphics.Color.parseColor("#2196F3")); // Blue color for office
+        officeBtn.setOnClickListener(v -> {
+            showSendToOfficeFromAGradeDialog();
+        });
+        vbox.addView(officeBtn);
+
+        // Add Mark as Reject button below the Send to Office button
+        com.google.android.material.button.MaterialButton markAsRejectBtn = new com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        markAsRejectBtn.setText("Mark as Reject");
+        markAsRejectBtn.setCornerRadius(dp(30));
+        markAsRejectBtn.setTextSize(16);
+        markAsRejectBtn.setElevation(dp(4));
+        LinearLayout.LayoutParams markAsRejectBtnLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        markAsRejectBtnLp.setMargins(0, 0, 0, dp(16)); // Add bottom margin
+        markAsRejectBtn.setLayoutParams(markAsRejectBtnLp);
+        markAsRejectBtn.setTextColor(android.graphics.Color.WHITE);
+        markAsRejectBtn.setBackgroundColor(android.graphics.Color.parseColor("#F44336")); // Red color
+        markAsRejectBtn.setOnClickListener(v -> showMarkAsARejectDialog());
+        vbox.addView(markAsRejectBtn);
+
+        // --- REJECT BALANCE & CHART SECTION ---
+        // Add Reject Balance chart and then text below it
+        factoryBalanceAGradeRejectChart = new com.github.mikephil.charting.charts.LineChart(this);
+        factoryBalanceAGradeRejectChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        factoryBalanceAGradeRejectChart.setNoDataText("Loading chart...");
+        factoryBalanceAGradeRejectChart.setTouchEnabled(false);
+        factoryBalanceAGradeRejectChart.setDescription(new com.github.mikephil.charting.components.Description());
+        vbox.addView(factoryBalanceAGradeRejectChart);
+
+        factoryBalanceAGradeRejectText = new TextView(this);
+        if (currentLot != null) {
+            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            factoryBalanceAGradeRejectText.setText("A Grade Reject Balance: " + rejectPcs + " Pcs.");
+        } else {
+            factoryBalanceAGradeRejectText.setText("A Grade Reject Balance: 0 Pcs.");
+        }
+        factoryBalanceAGradeRejectText.setTextSize(14);
+        factoryBalanceAGradeRejectText.setTypeface(null, android.graphics.Typeface.BOLD);
+        factoryBalanceAGradeRejectText.setTextColor(android.graphics.Color.BLACK);
+        factoryBalanceAGradeRejectText.setPadding(0, dp(8), 0, dp(8));
+        vbox.addView(factoryBalanceAGradeRejectText);
+
+        card.addView(vbox);
+        // Start chart simulation and update reject balance
+        updateFactoryBalanceAGradeReject();
+        startFactoryBalanceAGradeRejectChartSimulation();
+        startFactoryBalanceAGradeChartSimulation();
+
+        // --- Wrap the card in a vertical ScrollView ---
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
+        scrollView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        scrollView.addView(card);
+        return scrollView;
+    }
+
+    // Factory Balance B Grade content
+    private View createFactoryBalanceBGradeContent() {
+        // CardView container
+        CardView card = new CardView(this);
+        card.setRadius(dp(20));
+        card.setCardElevation(dp(6));
+        card.setUseCompatPadding(true);
+        FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardLp.setMargins(dp(16), dp(16), dp(16), dp(24));
+        card.setLayoutParams(cardLp);
+        card.setContentPadding(dp(20), dp(20), dp(20), dp(20));
+
+        LinearLayout vbox = new LinearLayout(this);
+        vbox.setOrientation(LinearLayout.VERTICAL);
+        vbox.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Chart
+        factoryBalanceBGradeChart = new com.github.mikephil.charting.charts.LineChart(this);
+        factoryBalanceBGradeChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        factoryBalanceBGradeChart.setNoDataText("Loading chart...");
+        factoryBalanceBGradeChart.setTouchEnabled(false);
+        factoryBalanceBGradeChart.setDescription(new com.github.mikephil.charting.components.Description());
+        vbox.addView(factoryBalanceBGradeChart);
+
+        // Factory Balance B Grade
+        factoryBalanceBGradeText = new TextView(this);
+        if (currentLot != null) {
+            int bGradePcs = currentLot.getFactoryBalanceBGradePcs();
+            factoryBalanceBGradeText.setText("B Grade Balance: " + bGradePcs + " Pcs.");
+        } else {
+            factoryBalanceBGradeText.setText("B Grade Balance: 0 Pcs.");
+        }
+        factoryBalanceBGradeText.setTextSize(14);
+        factoryBalanceBGradeText.setTypeface(null, android.graphics.Typeface.BOLD);
+        factoryBalanceBGradeText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceBGradeText.setPadding(0, dp(16), 0, dp(16));
+        vbox.addView(factoryBalanceBGradeText);
+
+        // Send to Office Button
+        com.google.android.material.button.MaterialButton officeBtn = new com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        officeBtn.setText("Send to Office");
+        officeBtn.setCornerRadius(dp(30));
+        officeBtn.setTextSize(16);
+        officeBtn.setElevation(dp(4));
+        officeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        officeBtn.setTextColor(android.graphics.Color.BLACK);
+        officeBtn.setBackgroundColor(android.graphics.Color.parseColor("#2196F3")); // Blue color for office
+        officeBtn.setOnClickListener(v -> {
+            showSendToOfficeFromBGradeDialog();
+        });
+        vbox.addView(officeBtn);
+
+        // Add Mark as Reject button below the Send to Office button
+        com.google.android.material.button.MaterialButton markAsRejectBtn = new com.google.android.material.button.MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        markAsRejectBtn.setText("Mark as Reject");
+        markAsRejectBtn.setCornerRadius(dp(30));
+        markAsRejectBtn.setTextSize(16);
+        markAsRejectBtn.setElevation(dp(4));
+        markAsRejectBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        markAsRejectBtn.setTextColor(android.graphics.Color.WHITE);
+        markAsRejectBtn.setBackgroundColor(android.graphics.Color.parseColor("#F44336")); // Red color
+        markAsRejectBtn.setOnClickListener(v -> showMarkAsBRejectDialog());
+        vbox.addView(markAsRejectBtn);
+
+        card.addView(vbox);
+        // Start chart simulation
+        startFactoryBalanceBGradeChartSimulation();
+
+        // --- NEW SEPARATE CARD SECTION FOR B GRADE ---
+        CardView extraCard = new CardView(this);
+        extraCard.setRadius(dp(20));
+        extraCard.setCardElevation(dp(6));
+        extraCard.setUseCompatPadding(true);
+        FrameLayout.LayoutParams extraCardLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        extraCardLp.setMargins(dp(16), 0, dp(16), dp(24));
+        extraCard.setLayoutParams(extraCardLp);
+        extraCard.setContentPadding(dp(20), dp(20), dp(20), dp(20));
+
+        LinearLayout extraVBox = new LinearLayout(this);
+        extraVBox.setOrientation(LinearLayout.VERTICAL);
+        extraVBox.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Chart for extra card
+        com.github.mikephil.charting.charts.LineChart extraChart = new com.github.mikephil.charting.charts.LineChart(this);
+        extraChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        extraChart.setNoDataText("Loading chart...");
+        extraChart.setTouchEnabled(false);
+        extraChart.setDescription(new com.github.mikephil.charting.components.Description());
+        // Add example data to show chart
+        java.util.ArrayList<com.github.mikephil.charting.data.Entry> extraEntries = new java.util.ArrayList<>();
+        for (int i = 0; i < 7; i++) extraEntries.add(new com.github.mikephil.charting.data.Entry(i, (float)(Math.random() * 20 + 5)));
+        com.github.mikephil.charting.data.LineDataSet extraDataSet = new com.github.mikephil.charting.data.LineDataSet(extraEntries, "Extra Balance");
+        extraDataSet.setColor(android.graphics.Color.parseColor("#F44336")); // Red color
+        extraDataSet.setCircleColor(android.graphics.Color.parseColor("#F44336")); // Red color
+        extraDataSet.setLineWidth(3f);
+        extraDataSet.setCircleRadius(5f);
+        extraDataSet.setDrawValues(false);
+        extraDataSet.setValueTextSize(10f);
+        extraDataSet.setValueTextColor(android.graphics.Color.BLACK);
+        extraDataSet.setMode(com.github.mikephil.charting.data.LineDataSet.Mode.CUBIC_BEZIER);
+        extraDataSet.setDrawCircles(true);
+        extraDataSet.setDrawCircleHole(true);
+        extraDataSet.setCircleHoleColor(android.graphics.Color.WHITE);
+        com.github.mikephil.charting.data.LineData extraData = new com.github.mikephil.charting.data.LineData(extraDataSet);
+        extraChart.setData(extraData);
+        // Configure chart appearance
+        extraChart.getXAxis().setDrawLabels(true);
+        extraChart.getXAxis().setGranularity(1f);
+        extraChart.getXAxis().setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        extraChart.getAxisRight().setEnabled(false);
+        extraChart.getAxisLeft().setDrawGridLines(true);
+        extraChart.getAxisLeft().setGridColor(android.graphics.Color.LTGRAY);
+        extraChart.getAxisLeft().setGridLineWidth(0.5f);
+        extraChart.getXAxis().setDrawGridLines(false);
+        extraChart.getLegend().setEnabled(false);
+        extraChart.getAxisLeft().setAxisMinimum(0f);
+        extraChart.getAxisLeft().setAxisMaximum(40f);
+        extraChart.invalidate();
+        extraVBox.addView(extraChart);
+
+        // Add Reject Balance text below the extra chart
+        TextView rejectBalance = new TextView(this);
+        rejectBalance.setText("Reject Balance: 0 Pcs.");
+        rejectBalance.setTextSize(14);
+        rejectBalance.setTypeface(null, android.graphics.Typeface.BOLD);
+        rejectBalance.setTextColor(android.graphics.Color.BLACK);
+        rejectBalance.setPadding(0, dp(8), 0, dp(8));
+        extraVBox.addView(rejectBalance);
+
+        extraCard.addView(extraVBox);
+
+        // Create a vertical container to hold both cards
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        container.addView(card);
+        container.addView(extraCard);
+
+        // Wrap the whole section in a vertical ScrollView
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
+        scrollView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        scrollView.addView(container);
+
+        return scrollView;
     }
 
     // Placeholder for other tabs
@@ -1401,7 +2202,7 @@ public class LotDetailActivity extends AppCompatActivity {
         });
         
         // Create dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle("Transfer to Embroidery")
                .setView(dialogLayout)
                .setPositiveButton("Send", (dialog, which) -> {
@@ -1431,7 +2232,7 @@ public class LotDetailActivity extends AppCompatActivity {
                })
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
         
-        AlertDialog dialog = builder.create();
+        android.app.AlertDialog dialog = builder.create();
         dialog.show();
     }
     
@@ -1517,7 +2318,7 @@ public class LotDetailActivity extends AppCompatActivity {
         });
         
         // Create dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle("Mark As Reject")
                .setView(dialogLayout)
                .setPositiveButton("Reject", (dialog, which) -> {
@@ -1547,7 +2348,7 @@ public class LotDetailActivity extends AppCompatActivity {
                })
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
         
-        AlertDialog dialog = builder.create();
+        android.app.AlertDialog dialog = builder.create();
         dialog.show();
     }
     
@@ -1801,7 +2602,7 @@ public class LotDetailActivity extends AppCompatActivity {
         });
         
         // Create dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle("Send to Office")
                .setView(dialogLayout)
                .setPositiveButton("Send", (dialog, which) -> {
@@ -1837,7 +2638,7 @@ public class LotDetailActivity extends AppCompatActivity {
                })
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
         
-        AlertDialog dialog = builder.create();
+        android.app.AlertDialog dialog = builder.create();
         dialog.show();
     }
     
@@ -1938,11 +2739,12 @@ public class LotDetailActivity extends AppCompatActivity {
         
         // Current Quantity display below input field
         TextView currentQuantityText = new TextView(this);
-        int availablePcs = 0;
+        final int availablePcs;
         if (currentLot != null) {
             availablePcs = currentLot.getEmbroideryReceivePcs();
             currentQuantityText.setText("Available Quantity: " + availablePcs + " Pcs.");
         } else {
+            availablePcs = 0;
             currentQuantityText.setText("Available Quantity: 0 Pcs.");
         }
         currentQuantityText.setTextSize(12); // Small text
@@ -1995,8 +2797,7 @@ public class LotDetailActivity extends AppCompatActivity {
         });
         
         // Create dialog
-        int finalAvailablePcs = availablePcs;
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle("Send to Office")
                .setView(dialogLayout)
                .setPositiveButton("Send", (dialog, which) -> {
@@ -2016,8 +2817,8 @@ public class LotDetailActivity extends AppCompatActivity {
                        }
                        
                        // Validate against available quantity
-                       if (quantity > finalAvailablePcs) {
-                           Toast.makeText(this, "Quantity cannot exceed available quantity (" + finalAvailablePcs + " Pcs)", Toast.LENGTH_SHORT).show();
+                       if (quantity > availablePcs) {
+                           Toast.makeText(this, "Quantity cannot exceed available quantity (" + availablePcs + " Pcs)", Toast.LENGTH_SHORT).show();
                            return;
                        }
                        
@@ -2029,7 +2830,7 @@ public class LotDetailActivity extends AppCompatActivity {
                })
                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
         
-        AlertDialog dialog = builder.create();
+        android.app.AlertDialog dialog = builder.create();
         dialog.show();
     }
     
@@ -2108,5 +2909,1163 @@ public class LotDetailActivity extends AppCompatActivity {
                 }
             }, 1500); // 1.5 second delay for send simulation
         }, 1000); // 1 second delay for initial processing
+    }
+
+    // Factory Balance Dialog Methods
+    private void showAddToAGradeDialog() {
+        // Create dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(24), dp(24), dp(24));
+        
+        // Quantity input field
+        TextView quantityLabel = new TextView(this);
+        quantityLabel.setText("Add Quantity (Pcs.):");
+        quantityLabel.setTextSize(16);
+        quantityLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        quantityLabel.setPadding(0, 0, 0, dp(8));
+        dialogLayout.addView(quantityLabel);
+        
+        EditText quantityInput = new EditText(this);
+        quantityInput.setHint("Enter quantity");
+        quantityInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        quantityInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        quantityInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        dialogLayout.addView(quantityInput);
+        
+        // Date input field
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Date:");
+        dateLabel.setTextSize(16);
+        dateLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        dateLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(dateLabel);
+        
+        EditText dateInput = new EditText(this);
+        dateInput.setHint("Select date (optional)");
+        dateInput.setFocusable(false);
+        dateInput.setClickable(true);
+        dateInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dateInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        dateInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        
+        // Set current date as default
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        dateInput.setText(currentDate);
+        
+        dialogLayout.addView(dateInput);
+        
+        // Date picker functionality
+        dateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    String formattedDate = dateFormat.format(selectedDate.getTime());
+                    dateInput.setText(formattedDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+        
+        // Create dialog
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Add to A Grade")
+               .setView(dialogLayout)
+               .setPositiveButton("Add", (dialog, which) -> {
+                   String quantityStr = quantityInput.getText().toString().trim();
+                   String dateStr = dateInput.getText().toString().trim();
+                   
+                   if (TextUtils.isEmpty(quantityStr)) {
+                       Toast.makeText(this, "Please enter quantity", Toast.LENGTH_SHORT).show();
+                       return;
+                   }
+                   
+                   try {
+                       int quantity = Integer.parseInt(quantityStr);
+                       if (quantity <= 0) {
+                           Toast.makeText(this, "Quantity must be greater than 0", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Process the add to A Grade operation
+                       processAddToAGrade(quantity, dateStr);
+                   } catch (NumberFormatException e) {
+                       Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();
+                   }
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showAddToBGradeDialog() {
+        // Create dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(24), dp(24), dp(24));
+        
+        // Quantity input field
+        TextView quantityLabel = new TextView(this);
+        quantityLabel.setText("Add Quantity (Pcs.):");
+        quantityLabel.setTextSize(16);
+        quantityLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        quantityLabel.setPadding(0, 0, 0, dp(8));
+        dialogLayout.addView(quantityLabel);
+        
+        EditText quantityInput = new EditText(this);
+        quantityInput.setHint("Enter quantity");
+        quantityInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        quantityInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        quantityInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        dialogLayout.addView(quantityInput);
+        
+        // Date input field
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Date:");
+        dateLabel.setTextSize(16);
+        dateLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        dateLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(dateLabel);
+        
+        EditText dateInput = new EditText(this);
+        dateInput.setHint("Select date (optional)");
+        dateInput.setFocusable(false);
+        dateInput.setClickable(true);
+        dateInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dateInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        dateInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        
+        // Set current date as default
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        dateInput.setText(currentDate);
+        
+        dialogLayout.addView(dateInput);
+        
+        // Date picker functionality
+        dateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    String formattedDate = dateFormat.format(selectedDate.getTime());
+                    dateInput.setText(formattedDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+        
+        // Create dialog
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Add to B Grade")
+               .setView(dialogLayout)
+               .setPositiveButton("Add", (dialog, which) -> {
+                   String quantityStr = quantityInput.getText().toString().trim();
+                   String dateStr = dateInput.getText().toString().trim();
+                   
+                   if (TextUtils.isEmpty(quantityStr)) {
+                       Toast.makeText(this, "Please enter quantity", Toast.LENGTH_SHORT).show();
+                       return;
+                   }
+                   
+                   try {
+                       int quantity = Integer.parseInt(quantityStr);
+                       if (quantity <= 0) {
+                           Toast.makeText(this, "Quantity must be greater than 0", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Process the add to B Grade operation
+                       processAddToBGrade(quantity, dateStr);
+                   } catch (NumberFormatException e) {
+                       Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();
+                   }
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showSendToOfficeFromAGradeDialog() {
+        // Create dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(24), dp(24), dp(24));
+        
+        // Quantity input field
+        TextView quantityLabel = new TextView(this);
+        quantityLabel.setText("Send Quantity (Pcs.):");
+        quantityLabel.setTextSize(16);
+        quantityLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        quantityLabel.setPadding(0, 0, 0, dp(8));
+        dialogLayout.addView(quantityLabel);
+        
+        EditText quantityInput = new EditText(this);
+        quantityInput.setHint("Enter quantity");
+        quantityInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        quantityInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        quantityInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        dialogLayout.addView(quantityInput);
+        
+        // Current Quantity display below input field
+        TextView currentQuantityText = new TextView(this);
+        final int availablePcs;
+        if (currentLot != null) {
+            availablePcs = currentLot.getFactoryBalanceAGradePcs();
+            currentQuantityText.setText("Available A Grade Quantity: " + availablePcs + " Pcs.");
+        } else {
+            availablePcs = 0;
+            currentQuantityText.setText("Available A Grade Quantity: 0 Pcs.");
+        }
+        currentQuantityText.setTextSize(12); // Small text
+        currentQuantityText.setTextColor(Color.RED); // Red color
+        currentQuantityText.setPadding(0, dp(4), 0, dp(8));
+        currentQuantityText.setBackground(null);
+        currentQuantityText.setClickable(false);
+        currentQuantityText.setFocusable(false);
+        dialogLayout.addView(currentQuantityText);
+        
+        // Date input field
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Date:");
+        dateLabel.setTextSize(16);
+        dateLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        dateLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(dateLabel);
+        
+        EditText dateInput = new EditText(this);
+        dateInput.setHint("Select date (optional)");
+        dateInput.setFocusable(false);
+        dateInput.setClickable(true);
+        dateInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dateInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        dateInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        
+        // Set current date as default
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        dateInput.setText(currentDate);
+        
+        dialogLayout.addView(dateInput);
+        
+        // Date picker functionality
+        dateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    String formattedDate = dateFormat.format(selectedDate.getTime());
+                    dateInput.setText(formattedDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+        
+        // Create dialog
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Send A Grade to Office")
+               .setView(dialogLayout)
+               .setPositiveButton("Send", (dialog, which) -> {
+                   String quantityStr = quantityInput.getText().toString().trim();
+                   String dateStr = dateInput.getText().toString().trim();
+                   
+                   if (TextUtils.isEmpty(quantityStr)) {
+                       Toast.makeText(this, "Please enter quantity", Toast.LENGTH_SHORT).show();
+                       return;
+                   }
+                   
+                   try {
+                       int quantity = Integer.parseInt(quantityStr);
+                       if (quantity <= 0) {
+                           Toast.makeText(this, "Quantity must be greater than 0", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Validate against available quantity
+                       if (quantity > availablePcs) {
+                           Toast.makeText(this, "Quantity cannot exceed available quantity (" + availablePcs + " Pcs)", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Process the send to office operation
+                       processSendToOfficeFromAGrade(quantity, dateStr);
+                   } catch (NumberFormatException e) {
+                       Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();
+                   }
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showSendToOfficeFromBGradeDialog() {
+        // Create dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(24), dp(24), dp(24));
+        
+        // Quantity input field
+        TextView quantityLabel = new TextView(this);
+        quantityLabel.setText("Send Quantity (Pcs.):");
+        quantityLabel.setTextSize(16);
+        quantityLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        quantityLabel.setPadding(0, 0, 0, dp(8));
+        dialogLayout.addView(quantityLabel);
+        
+        EditText quantityInput = new EditText(this);
+        quantityInput.setHint("Enter quantity");
+        quantityInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        quantityInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        quantityInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        dialogLayout.addView(quantityInput);
+        
+        // Current Quantity display below input field
+        TextView currentQuantityText = new TextView(this);
+        final int availablePcs;
+        if (currentLot != null) {
+            availablePcs = currentLot.getFactoryBalanceBGradePcs();
+            currentQuantityText.setText("Available B Grade Quantity: " + availablePcs + " Pcs.");
+        } else {
+            availablePcs = 0;
+            currentQuantityText.setText("Available B Grade Quantity: 0 Pcs.");
+        }
+        currentQuantityText.setTextSize(12); // Small text
+        currentQuantityText.setTextColor(Color.RED); // Red color
+        currentQuantityText.setPadding(0, dp(4), 0, dp(8));
+        currentQuantityText.setBackground(null);
+        currentQuantityText.setClickable(false);
+        currentQuantityText.setFocusable(false);
+        dialogLayout.addView(currentQuantityText);
+        
+        // Date input field
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Date:");
+        dateLabel.setTextSize(16);
+        dateLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        dateLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(dateLabel);
+        
+        EditText dateInput = new EditText(this);
+        dateInput.setHint("Select date (optional)");
+        dateInput.setFocusable(false);
+        dateInput.setClickable(true);
+        dateInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dateInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        dateInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        
+        // Set current date as default
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        dateInput.setText(currentDate);
+        
+        dialogLayout.addView(dateInput);
+        
+        // Date picker functionality
+        dateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    String formattedDate = dateFormat.format(selectedDate.getTime());
+                    dateInput.setText(formattedDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+        
+        // Create dialog
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Send B Grade to Office")
+               .setView(dialogLayout)
+               .setPositiveButton("Send", (dialog, which) -> {
+                   String quantityStr = quantityInput.getText().toString().trim();
+                   String dateStr = dateInput.getText().toString().trim();
+                   
+                   if (TextUtils.isEmpty(quantityStr)) {
+                       Toast.makeText(this, "Please enter quantity", Toast.LENGTH_SHORT).show();
+                       return;
+                   }
+                   
+                   try {
+                       int quantity = Integer.parseInt(quantityStr);
+                       if (quantity <= 0) {
+                           Toast.makeText(this, "Quantity must be greater than 0", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Validate against available quantity
+                       if (quantity > availablePcs) {
+                           Toast.makeText(this, "Quantity cannot exceed available quantity (" + availablePcs + " Pcs)", Toast.LENGTH_SHORT).show();
+                           return;
+                       }
+                       
+                       // Process the send to office operation
+                       processSendToOfficeFromBGrade(quantity, dateStr);
+                   } catch (NumberFormatException e) {
+                       Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();
+                   }
+               })
+               .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void processAddToAGrade(int quantity, String date) {
+        // Show loading animation
+        showLoading(true);
+        
+        // Simulate add to A Grade process with delay
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // Show progress message
+            Toast.makeText(this, "Processing add to A Grade...", Toast.LENGTH_SHORT).show();
+            
+            // Simulate another delay for the actual add
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // Hide loading and show success message
+                showLoading(false);
+                
+                // Show success message with details
+                String successMessage = String.format("✅ Successfully added %d Pcs to A Grade!", quantity);
+                Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show();
+                
+                // Update the lot data to reflect the add to A Grade
+                if (currentLot != null) {
+                    // Add to A Grade balance
+                    int currentAGradePcs = currentLot.getFactoryBalanceAGradePcs();
+                    currentLot.setFactoryBalanceAGradePcs(currentAGradePcs + quantity);
+                    
+                    // Update A Grade balance display
+                    updateFactoryBalanceAGrade();
+                    
+                    // Update A Grade chart
+                    startFactoryBalanceAGradeChartSimulation();
+                    
+                    // Verify data before saving to Firebase
+                    firestoreService.verifyLotDataSave(currentLot, 
+                        () -> {
+                            // Data is valid, proceed with Firebase save
+                            Log.d("LotDetailActivity", "Saving lot to Firebase after add to A Grade - ID: " + currentLot.getId());
+                            Log.d("LotDetailActivity", "Firebase save - A Grade: " + currentLot.getFactoryBalanceAGradePcs() + " pcs");
+                            
+                            firestoreService.updateLot(currentLot, new FirestoreService.LotCallback() {
+                        @Override
+                        public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                            Log.d("LotDetailActivity", "✅ Lot successfully updated in Firebase after add to A Grade");
+                            Log.d("LotDetailActivity", "Firebase confirmed - A Grade: " + updatedLot.getFactoryBalanceAGradePcs() + " pcs");
+                            // Update the charts to reflect the new balances
+                            updateFactoryBalanceAGrade();
+                            startFactoryBalanceAGradeChartSimulation();
+                        }
+                        
+                        @Override
+                        public void onError(String error) {
+                            Log.e("LotDetailActivity", "❌ Failed to update lot in Firebase after add to A Grade: " + error);
+                            Toast.makeText(LotDetailActivity.this, "Add to A Grade completed but failed to update database", Toast.LENGTH_SHORT).show();
+                        }
+                        
+                        @Override
+                        public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+                        
+                        @Override
+                        public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+                        
+                        @Override
+                        public void onLotDeleted(String lotId) {}
+                    });
+                        }, 
+                        () -> {
+                            // Data validation failed
+                            Log.e("LotDetailActivity", "❌ Data validation failed before Firebase save");
+                            Toast.makeText(LotDetailActivity.this, "Data validation failed", Toast.LENGTH_SHORT).show();
+                        });
+                }
+            }, 1500); // 1.5 second delay for add simulation
+        }, 1000); // 1 second delay for initial processing
+    }
+
+    private void processAddToBGrade(int quantity, String date) {
+        // Show loading animation
+        showLoading(true);
+        
+        // Simulate add to B Grade process with delay
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // Show progress message
+            Toast.makeText(this, "Processing add to B Grade...", Toast.LENGTH_SHORT).show();
+            
+            // Simulate another delay for the actual add
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // Hide loading and show success message
+                showLoading(false);
+                
+                // Show success message with details
+                String successMessage = String.format("✅ Successfully added %d Pcs to B Grade!", quantity);
+                Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show();
+                
+                // Update the lot data to reflect the add to B Grade
+                if (currentLot != null) {
+                    // Add to B Grade balance
+                    int currentBGradePcs = currentLot.getFactoryBalanceBGradePcs();
+                    currentLot.setFactoryBalanceBGradePcs(currentBGradePcs + quantity);
+                    
+                    // Update B Grade balance display
+                    updateFactoryBalanceBGrade();
+                    
+                    // Update B Grade chart
+                    startFactoryBalanceBGradeChartSimulation();
+                    
+                    // Verify data before saving to Firebase
+                    firestoreService.verifyLotDataSave(currentLot, 
+                        () -> {
+                            // Data is valid, proceed with Firebase save
+                            Log.d("LotDetailActivity", "Saving lot to Firebase after add to B Grade - ID: " + currentLot.getId());
+                            Log.d("LotDetailActivity", "Firebase save - B Grade: " + currentLot.getFactoryBalanceBGradePcs() + " pcs");
+                            
+                            firestoreService.updateLot(currentLot, new FirestoreService.LotCallback() {
+                        @Override
+                        public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                            Log.d("LotDetailActivity", "✅ Lot successfully updated in Firebase after add to B Grade");
+                            Log.d("LotDetailActivity", "Firebase confirmed - B Grade: " + updatedLot.getFactoryBalanceBGradePcs() + " pcs");
+                            // Update the charts to reflect the new balances
+                            updateFactoryBalanceBGrade();
+                            startFactoryBalanceBGradeChartSimulation();
+                        }
+                        
+                        @Override
+                        public void onError(String error) {
+                            Log.e("LotDetailActivity", "❌ Failed to update lot in Firebase after add to B Grade: " + error);
+                            Toast.makeText(LotDetailActivity.this, "Add to B Grade completed but failed to update database", Toast.LENGTH_SHORT).show();
+                        }
+                        
+                        @Override
+                        public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+                        
+                        @Override
+                        public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+                        
+                        @Override
+                        public void onLotDeleted(String lotId) {}
+                    });
+                        }, 
+                        () -> {
+                            // Data validation failed
+                            Log.e("LotDetailActivity", "❌ Data validation failed before Firebase save");
+                            Toast.makeText(LotDetailActivity.this, "Data validation failed", Toast.LENGTH_SHORT).show();
+                        });
+                }
+            }, 1500); // 1.5 second delay for add simulation
+        }, 1000); // 1 second delay for initial processing
+    }
+
+    private void processSendToOfficeFromAGrade(int quantity, String date) {
+        // Show loading animation
+        showLoading(true);
+        
+        // Simulate send to office from A Grade process with delay
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // Show progress message
+            Toast.makeText(this, "Processing send to office from A Grade...", Toast.LENGTH_SHORT).show();
+            
+            // Simulate another delay for the actual send
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // Hide loading and show success message
+                showLoading(false);
+                
+                // Show success message with details
+                String successMessage = String.format("📦 Successfully sent %d Pcs to office from A Grade!", quantity);
+                Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show();
+                
+                // Update the lot data to reflect the send to office from A Grade
+                if (currentLot != null) {
+                    // Add to office shipment balance (in Pcs)
+                    int currentOfficeShipmentPcs = currentLot.getOfficeShipmentPcs();
+                    currentLot.setOfficeShipmentPcs(currentOfficeShipmentPcs + quantity);
+                    
+                    // Subtract from A Grade balance
+                    int currentAGradePcs = currentLot.getFactoryBalanceAGradePcs();
+                    currentLot.setFactoryBalanceAGradePcs(currentAGradePcs - quantity);
+                    
+                    // Update office shipment balance display
+                    updateOfficeShipmentBalance();
+                    
+                    // Update office shipment chart
+                    startOfficeShipmentChartSimulation();
+                    
+                    // Update A Grade balance display
+                    updateFactoryBalanceAGrade();
+                    
+                    // Update A Grade chart
+                    startFactoryBalanceAGradeChartSimulation();
+                    
+                    // Verify data before saving to Firebase
+                    firestoreService.verifyLotDataSave(currentLot, 
+                        () -> {
+                            // Data is valid, proceed with Firebase save
+                            Log.d("LotDetailActivity", "Saving lot to Firebase after send to office from A Grade - ID: " + currentLot.getId());
+                            Log.d("LotDetailActivity", "Firebase save - Office Shipment: " + currentLot.getOfficeShipmentPcs() + " pcs");
+                            Log.d("LotDetailActivity", "Firebase save - A Grade: " + currentLot.getFactoryBalanceAGradePcs() + " pcs");
+                            
+                            firestoreService.updateLot(currentLot, new FirestoreService.LotCallback() {
+                        @Override
+                        public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                            Log.d("LotDetailActivity", "✅ Lot successfully updated in Firebase after send to office from A Grade");
+                            Log.d("LotDetailActivity", "Firebase confirmed - Office Shipment: " + updatedLot.getOfficeShipmentPcs() + " pcs");
+                            Log.d("LotDetailActivity", "Firebase confirmed - A Grade: " + updatedLot.getFactoryBalanceAGradePcs() + " pcs");
+                            // Update the charts to reflect the new balances
+                            updateOfficeShipmentBalance();
+                            startOfficeShipmentChartSimulation();
+                            updateFactoryBalanceAGrade();
+                            startFactoryBalanceAGradeChartSimulation();
+                        }
+                        
+                        @Override
+                        public void onError(String error) {
+                            Log.e("LotDetailActivity", "❌ Failed to update lot in Firebase after send to office from A Grade: " + error);
+                            Toast.makeText(LotDetailActivity.this, "Send to office completed but failed to update database", Toast.LENGTH_SHORT).show();
+                        }
+                        
+                        @Override
+                        public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+                        
+                        @Override
+                        public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+                        
+                        @Override
+                        public void onLotDeleted(String lotId) {}
+                    });
+                        }, 
+                        () -> {
+                            // Data validation failed
+                            Log.e("LotDetailActivity", "❌ Data validation failed before Firebase save");
+                            Toast.makeText(LotDetailActivity.this, "Data validation failed", Toast.LENGTH_SHORT).show();
+                        });
+                }
+            }, 1500); // 1.5 second delay for send simulation
+        }, 1000); // 1 second delay for initial processing
+    }
+
+    private void processSendToOfficeFromBGrade(int quantity, String date) {
+        // Show loading animation
+        showLoading(true);
+        
+        // Simulate send to office from B Grade process with delay
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // Show progress message
+            Toast.makeText(this, "Processing send to office from B Grade...", Toast.LENGTH_SHORT).show();
+            
+            // Simulate another delay for the actual send
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // Hide loading and show success message
+                showLoading(false);
+                
+                // Show success message with details
+                String successMessage = String.format("📦 Successfully sent %d Pcs to office from B Grade!", quantity);
+                Toast.makeText(this, successMessage, Toast.LENGTH_LONG).show();
+                
+                // Update the lot data to reflect the send to office from B Grade
+                if (currentLot != null) {
+                    // Add to office shipment balance (in Pcs)
+                    int currentOfficeShipmentPcs = currentLot.getOfficeShipmentPcs();
+                    currentLot.setOfficeShipmentPcs(currentOfficeShipmentPcs + quantity);
+                    
+                    // Subtract from B Grade balance
+                    int currentBGradePcs = currentLot.getFactoryBalanceBGradePcs();
+                    currentLot.setFactoryBalanceBGradePcs(currentBGradePcs - quantity);
+                    
+                    // Update office shipment balance display
+                    updateOfficeShipmentBalance();
+                    
+                    // Update office shipment chart
+                    startOfficeShipmentChartSimulation();
+                    
+                    // Update B Grade balance display
+                    updateFactoryBalanceBGrade();
+                    
+                    // Update B Grade chart
+                    startFactoryBalanceBGradeChartSimulation();
+                    
+                    // Verify data before saving to Firebase
+                    firestoreService.verifyLotDataSave(currentLot, 
+                        () -> {
+                            // Data is valid, proceed with Firebase save
+                            Log.d("LotDetailActivity", "Saving lot to Firebase after send to office from B Grade - ID: " + currentLot.getId());
+                            Log.d("LotDetailActivity", "Firebase save - Office Shipment: " + currentLot.getOfficeShipmentPcs() + " pcs");
+                            Log.d("LotDetailActivity", "Firebase save - B Grade: " + currentLot.getFactoryBalanceBGradePcs() + " pcs");
+                            
+                            firestoreService.updateLot(currentLot, new FirestoreService.LotCallback() {
+                        @Override
+                        public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                            Log.d("LotDetailActivity", "✅ Lot successfully updated in Firebase after send to office from B Grade");
+                            Log.d("LotDetailActivity", "Firebase confirmed - Office Shipment: " + updatedLot.getOfficeShipmentPcs() + " pcs");
+                            Log.d("LotDetailActivity", "Firebase confirmed - B Grade: " + updatedLot.getFactoryBalanceBGradePcs() + " pcs");
+                            // Update the charts to reflect the new balances
+                            updateOfficeShipmentBalance();
+                            startOfficeShipmentChartSimulation();
+                            updateFactoryBalanceBGrade();
+                            startFactoryBalanceBGradeChartSimulation();
+                        }
+                        
+                        @Override
+                        public void onError(String error) {
+                            Log.e("LotDetailActivity", "❌ Failed to update lot in Firebase after send to office from B Grade: " + error);
+                            Toast.makeText(LotDetailActivity.this, "Send to office completed but failed to update database", Toast.LENGTH_SHORT).show();
+                        }
+                        
+                        @Override
+                        public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+                        
+                        @Override
+                        public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+                        
+                        @Override
+                        public void onLotDeleted(String lotId) {}
+                    });
+                        }, 
+                        () -> {
+                            // Data validation failed
+                            Log.e("LotDetailActivity", "❌ Data validation failed before Firebase save");
+                            Toast.makeText(LotDetailActivity.this, "Data validation failed", Toast.LENGTH_SHORT).show();
+                        });
+                }
+            }, 1500); // 1.5 second delay for send simulation
+        }, 1000); // 1 second delay for initial processing
+    }
+
+    // --- Send to Factory Balance Dialog ---
+    private void showSendToFactoryBalanceDialog() {
+        // Dialog layout
+        LinearLayout dialogLayout = new LinearLayout(this);
+        dialogLayout.setOrientation(LinearLayout.VERTICAL);
+        dialogLayout.setPadding(dp(24), dp(24), dp(24), dp(24));
+
+        // Grade Spinner
+        TextView gradeLabel = new TextView(this);
+        gradeLabel.setText("Grade:");
+        gradeLabel.setTextSize(16);
+        gradeLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        gradeLabel.setPadding(0, 0, 0, dp(8));
+        dialogLayout.addView(gradeLabel);
+
+        Spinner gradeSpinner = new Spinner(this);
+        String[] grades = {"A Grade", "B Grade"};
+        ArrayAdapter<String> gradeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, grades);
+        gradeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        gradeSpinner.setAdapter(gradeAdapter);
+        dialogLayout.addView(gradeSpinner);
+
+        // Show available embroidery quantity
+        int availableEmbroideryLabel = (currentLot != null) ? currentLot.getEmbroideryReceivePcs() : 0;
+        TextView availableQtyLabel = new TextView(this);
+        availableQtyLabel.setText("Available: " + availableEmbroideryLabel + " Pcs.");
+        availableQtyLabel.setTextSize(14);
+        availableQtyLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        availableQtyLabel.setPadding(0, dp(8), 0, dp(8));
+        dialogLayout.addView(availableQtyLabel);
+
+        // Quantity input
+        TextView quantityLabel = new TextView(this);
+        quantityLabel.setText("Send Quantity (Pcs.):");
+        quantityLabel.setTextSize(16);
+        quantityLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        quantityLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(quantityLabel);
+
+        EditText quantityInput = new EditText(this);
+        quantityInput.setHint("Enter quantity");
+        quantityInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        quantityInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        quantityInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        dialogLayout.addView(quantityInput);
+
+        // Date input
+        TextView dateLabel = new TextView(this);
+        dateLabel.setText("Date:");
+        dateLabel.setTextSize(16);
+        dateLabel.setTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        dateLabel.setPadding(0, dp(16), 0, dp(8));
+        dialogLayout.addView(dateLabel);
+
+        EditText dateInput = new EditText(this);
+        dateInput.setHint("Select date (optional)");
+        dateInput.setFocusable(false);
+        dateInput.setClickable(true);
+        dateInput.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        dateInput.setPadding(dp(12), dp(12), dp(12), dp(12));
+        dateInput.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_edittext_focused_selector));
+        // Set current date as default
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String currentDate = dateFormat.format(calendar.getTime());
+        dateInput.setText(currentDate);
+        dialogLayout.addView(dateInput);
+        // Date picker
+        dateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    String formattedDate = dateFormat.format(selectedDate.getTime());
+                    dateInput.setText(formattedDate);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
+
+        // Dialog
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Send to Factory Balance")
+            .setView(dialogLayout)
+            .setPositiveButton("Send", null) // Set to null for custom click handling
+            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        android.app.AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(dlg -> {
+            Button sendButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+            sendButton.setOnClickListener(v -> {
+                String grade = gradeSpinner.getSelectedItem().toString();
+                String quantityStr = quantityInput.getText().toString().trim();
+                String dateStr = dateInput.getText().toString().trim();
+                if (TextUtils.isEmpty(quantityStr)) {
+                    quantityInput.setError("Please enter quantity");
+                    quantityInput.requestFocus();
+                    return;
+                }
+                int quantity;
+                try {
+                    quantity = Integer.parseInt(quantityStr);
+                } catch (NumberFormatException e) {
+                    quantityInput.setError("Please enter a valid number");
+                    quantityInput.requestFocus();
+                    return;
+                }
+                if (quantity <= 0) {
+                    quantityInput.setError("Quantity must be greater than 0");
+                    quantityInput.requestFocus();
+                    return;
+                }
+                // If date is empty, use current date
+                if (TextUtils.isEmpty(dateStr)) {
+                    dateStr = currentDate;
+                }
+                if (currentLot != null) {
+                    int availableEmbroidery = currentLot.getEmbroideryReceivePcs();
+                    if (quantity > availableEmbroidery) {
+                        quantityInput.setError("Cannot exceed available quantity (" + availableEmbroidery + ")");
+                        quantityInput.requestFocus();
+                        return;
+                    }
+                    // Show loading indicator and disable button
+                    showLoading(true);
+                    sendButton.setEnabled(false);
+                    // Subtract from embroidery, add to selected grade
+                    currentLot.setEmbroideryReceivePcs(availableEmbroidery - quantity);
+                    if (grade.equals("A Grade")) {
+                        int current = currentLot.getFactoryBalanceAGradePcs();
+                        currentLot.setFactoryBalanceAGradePcs(current + quantity);
+                    } else if (grade.equals("B Grade")) {
+                        int current = currentLot.getFactoryBalanceBGradePcs();
+                        currentLot.setFactoryBalanceBGradePcs(current + quantity);
+                    }
+                    firestoreService.updateLot(currentLot, new com.dazzling.erp.services.FirestoreService.LotCallback() {
+                        @Override
+                        public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                            currentLot = updatedLot;
+                            updateFactoryBalanceTotal();
+                            updateFactoryBalanceAGrade();
+                            updateFactoryBalanceBGrade();
+                            startFactoryBalanceTotalChartSimulation();
+                            startFactoryBalanceAGradeChartSimulation();
+                            startFactoryBalanceBGradeChartSimulation();
+                            showLoading(false);
+                            sendButton.setEnabled(true);
+                            // Update available quantity label instantly
+                            availableQtyLabel.setText("Available: " + currentLot.getEmbroideryReceivePcs() + " Pcs.");
+                            // Clear quantity input for next send
+                            quantityInput.setText("");
+                            Toast.makeText(LotDetailActivity.this, "Successfully sent to Factory Balance!", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        }
+                        @Override public void onError(String error) {
+                            showLoading(false);
+                            sendButton.setEnabled(true);
+                            Toast.makeText(LotDetailActivity.this, "Failed to update: " + error, Toast.LENGTH_LONG).show();
+                        }
+                        @Override public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+                        @Override public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+                        @Override public void onLotDeleted(String lotId) {}
+                    });
+                }
+            });
+        });
+        dialog.show();
+    }
+
+    // --- NEW: A Grade Reject Chart Simulation ---
+    private void startFactoryBalanceAGradeRejectChartSimulation() {
+        if (factoryBalanceAGradeRejectChart == null) return;
+        int currentBalance = 0;
+        if (currentLot != null) {
+            currentBalance = currentLot.getFactoryBalanceRejectPcs();
+        }
+        List<Entry> entries = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            float value;
+            if (i == 6) {
+                value = currentBalance;
+            } else if (i == 5) {
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.1f));
+            } else if (i == 4) {
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.2f));
+            } else {
+                float progress = (float) i / 5f;
+                value = Math.max(0, (int)(currentBalance * progress * 0.8f));
+            }
+            entries.add(new Entry(i, value));
+        }
+        factoryBalanceAGradeRejectDataSet = new LineDataSet(entries, "A Grade Reject");
+        factoryBalanceAGradeRejectDataSet.setColor(Color.parseColor("#F44336"));
+        factoryBalanceAGradeRejectDataSet.setCircleColor(Color.parseColor("#F44336"));
+        factoryBalanceAGradeRejectDataSet.setLineWidth(3f);
+        factoryBalanceAGradeRejectDataSet.setCircleRadius(5f);
+        factoryBalanceAGradeRejectDataSet.setDrawValues(true);
+        factoryBalanceAGradeRejectDataSet.setValueTextSize(10f);
+        factoryBalanceAGradeRejectDataSet.setValueTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceAGradeRejectDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        factoryBalanceAGradeRejectDataSet.setDrawCircles(true);
+        factoryBalanceAGradeRejectDataSet.setDrawCircleHole(true);
+        factoryBalanceAGradeRejectDataSet.setCircleHoleColor(Color.WHITE);
+        LineData data = new LineData(factoryBalanceAGradeRejectDataSet);
+        factoryBalanceAGradeRejectChart.setData(data);
+        factoryBalanceAGradeRejectChart.getXAxis().setDrawLabels(true);
+        factoryBalanceAGradeRejectChart.getXAxis().setGranularity(1f);
+        factoryBalanceAGradeRejectChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        factoryBalanceAGradeRejectChart.getAxisRight().setEnabled(false);
+        factoryBalanceAGradeRejectChart.getAxisLeft().setDrawGridLines(true);
+        factoryBalanceAGradeRejectChart.getAxisLeft().setGridColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        factoryBalanceAGradeRejectChart.getAxisLeft().setGridLineWidth(0.5f);
+        factoryBalanceAGradeRejectChart.getXAxis().setDrawGridLines(false);
+        factoryBalanceAGradeRejectChart.getLegend().setEnabled(false);
+        factoryBalanceAGradeRejectChart.getAxisLeft().setAxisMinimum(0f);
+        if (currentBalance > 0) {
+            factoryBalanceAGradeRejectChart.getAxisLeft().setAxisMaximum(currentBalance * 1.2f);
+        } else {
+            factoryBalanceAGradeRejectChart.getAxisLeft().setAxisMaximum(50f);
+        }
+        factoryBalanceAGradeRejectChart.invalidate();
+    }
+
+    // --- NEW: Show Mark As A Reject Dialog ---
+    private void showMarkAsARejectDialog() {
+        // This dialog should match the embroidery reject dialog, but update A Grade reject pcs
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Mark A Grade As Rejected");
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(24), dp(16), dp(24), dp(4));
+        final EditText quantityInput = new EditText(this);
+        quantityInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setHint("Quantity (Pcs)");
+        layout.addView(quantityInput);
+        final EditText dateInput = new EditText(this);
+        dateInput.setInputType(InputType.TYPE_CLASS_DATETIME);
+        dateInput.setHint("Date (yyyy-MM-dd)");
+        dateInput.setText(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()));
+        layout.addView(dateInput);
+        builder.setView(layout);
+        builder.setPositiveButton("Mark as Rejected", (dialog, which) -> {
+            String qtyStr = quantityInput.getText().toString().trim();
+            String dateStr = dateInput.getText().toString().trim();
+            if (qtyStr.isEmpty() || Integer.parseInt(qtyStr) <= 0) {
+                Toast.makeText(this, "Please enter a valid quantity.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            int qty = Integer.parseInt(qtyStr);
+            processMarkAsAReject(qty, dateStr);
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // --- NEW: Process Mark As A Reject ---
+    private void processMarkAsAReject(int quantity, String date) {
+        if (currentLot == null) return;
+        int available = currentLot.getFactoryBalanceAGradePcs();
+        if (quantity > available) {
+            Toast.makeText(this, "Cannot reject more than available A Grade quantity.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int prevReject = currentLot.getFactoryBalanceRejectPcs();
+        currentLot.setFactoryBalanceAGradePcs(available - quantity);
+        currentLot.setFactoryBalanceRejectPcs(prevReject + quantity);
+        // Add to history for audit
+        List<com.dazzling.erp.models.Transfer> history = currentLot.getFactoryBalanceHistory();
+        if (history == null) history = new java.util.ArrayList<>();
+        history.add(new com.dazzling.erp.models.Transfer(quantity, new java.util.Date(), "A Grade → Reject on " + date));
+        currentLot.setFactoryBalanceHistory(history);
+        // Show loading indicator
+        showLoading(true);
+        firestoreService.updateLot(currentLot, new com.dazzling.erp.services.FirestoreService.LotCallback() {
+            @Override
+            public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                currentLot = updatedLot;
+                updateFactoryBalanceAGrade();
+                updateFactoryBalanceAGradeReject();
+                startFactoryBalanceAGradeChartSimulation();
+                startFactoryBalanceAGradeRejectChartSimulation();
+                showLoading(false);
+                Toast.makeText(LotDetailActivity.this, "Marked as rejected successfully!", Toast.LENGTH_SHORT).show();
+            }
+            @Override public void onError(String error) {
+                showLoading(false);
+                Toast.makeText(LotDetailActivity.this, "Failed to update reject balance: " + error, Toast.LENGTH_LONG).show();
+                android.util.Log.e("LotDetailActivity", "Error updating reject balance", new Exception(error));
+            }
+            @Override public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+            @Override public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+            @Override public void onLotDeleted(String lotId) {}
+        });
+    }
+
+    // --- NEW: Update A Grade Reject Balance ---
+    private void updateFactoryBalanceAGradeReject() {
+        if (factoryBalanceAGradeRejectText != null && currentLot != null) {
+            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            factoryBalanceAGradeRejectText.setText("A Grade Reject Balance: " + rejectPcs + " Pcs.");
+        }
+    }
+
+    // --- B GRADE: Show Mark As Reject Dialog ---
+    private void showMarkAsBRejectDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Mark B Grade As Rejected");
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(24), dp(16), dp(24), dp(4));
+        final EditText quantityInput = new EditText(this);
+        quantityInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        quantityInput.setHint("Quantity (Pcs)");
+        layout.addView(quantityInput);
+        final EditText dateInput = new EditText(this);
+        dateInput.setInputType(InputType.TYPE_CLASS_DATETIME);
+        dateInput.setHint("Date (yyyy-MM-dd)");
+        dateInput.setText(new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date()));
+        layout.addView(dateInput);
+        builder.setView(layout);
+        builder.setPositiveButton("Mark as Rejected", (dialog, which) -> {
+            String qtyStr = quantityInput.getText().toString().trim();
+            String dateStr = dateInput.getText().toString().trim();
+            if (qtyStr.isEmpty() || Integer.parseInt(qtyStr) <= 0) {
+                Toast.makeText(this, "Please enter a valid quantity.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            int qty = Integer.parseInt(qtyStr);
+            processMarkAsBReject(qty, dateStr);
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // --- B GRADE: Process Mark As Reject ---
+    private void processMarkAsBReject(int quantity, String date) {
+        if (currentLot == null) return;
+        int available = currentLot.getFactoryBalanceBGradePcs();
+        if (quantity > available) {
+            Toast.makeText(this, "Cannot reject more than available B Grade quantity.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // For B Grade, let's use EmbroideryRejectPcs as the reject balance for B Grade
+        int prevReject = currentLot.getFactoryBalanceRejectPcs();
+        currentLot.setFactoryBalanceBGradePcs(available - quantity);
+        currentLot.setFactoryBalanceRejectPcs(prevReject + quantity);
+        // Add to history for audit
+        java.util.List<com.dazzling.erp.models.Transfer> history = currentLot.getFactoryBalanceHistory();
+        if (history == null) history = new java.util.ArrayList<>();
+        history.add(new com.dazzling.erp.models.Transfer(quantity, new java.util.Date(), "B Grade → Reject on " + date));
+        currentLot.setFactoryBalanceHistory(history);
+        // Show loading indicator
+        showLoading(true);
+        firestoreService.updateLot(currentLot, new com.dazzling.erp.services.FirestoreService.LotCallback() {
+            @Override
+            public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
+                currentLot = updatedLot;
+                updateFactoryBalanceBGrade();
+                // Optionally update reject chart if you have one for B Grade
+                showLoading(false);
+                Toast.makeText(LotDetailActivity.this, "Marked as rejected successfully!", Toast.LENGTH_SHORT).show();
+            }
+            @Override public void onError(String error) {
+                showLoading(false);
+                Toast.makeText(LotDetailActivity.this, "Failed to update reject balance: " + error, Toast.LENGTH_LONG).show();
+                android.util.Log.e("LotDetailActivity", "Error updating B Grade reject balance", new Exception(error));
+            }
+            @Override public void onLotsLoaded(java.util.List<com.dazzling.erp.models.Lot> lots) {}
+            @Override public void onLotAdded(com.dazzling.erp.models.Lot lot) {}
+            @Override public void onLotDeleted(String lotId) {}
+        });
+    }
+
+    // Add this method to the class:
+    private void showHistoryDialog() {
+        if (currentLot == null || currentLot.getFactoryBalanceHistory() == null || currentLot.getFactoryBalanceHistory().isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("History")
+                .setMessage("No history available.")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
+            return;
+        }
+        StringBuilder historyText = new StringBuilder();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault());
+        for (com.dazzling.erp.models.Transfer t : currentLot.getFactoryBalanceHistory()) {
+            historyText.append("Date: ").append(sdf.format(t.getDate()))
+                .append("\nQty: ").append(t.getQuantity())
+                .append("\nNote: ").append(t.getNote() == null ? "" : t.getNote())
+                .append("\n\n");
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Factory Balance History")
+            .setMessage(historyText.toString())
+            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+            .show();
     }
 }

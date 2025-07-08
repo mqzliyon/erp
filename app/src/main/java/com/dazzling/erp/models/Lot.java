@@ -4,6 +4,7 @@ import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.ServerTimestamp;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * Lot model for comprehensive lot management with tracking of all operations
@@ -36,6 +37,11 @@ public class Lot {
     private double factoryBalanceBGradeKg;
     private double factoryBalanceRejectKg;
     
+    // Factory Balance in Pcs
+    private int factoryBalanceAGradePcs;
+    private int factoryBalanceBGradePcs;
+    private int factoryBalanceRejectPcs;
+    
     // Status tracking
     private String status; // active, completed, cancelled
     private String priority; // low, medium, high, urgent
@@ -59,6 +65,8 @@ public class Lot {
     private Date createdAt;
     
     private Date updatedAt;
+
+    private List<Transfer> factoryBalanceHistory;
 
     // Required empty constructor for Firestore
     public Lot() {}
@@ -142,6 +150,15 @@ public class Lot {
     public double getFactoryBalanceRejectKg() { return factoryBalanceRejectKg; }
     public void setFactoryBalanceRejectKg(double factoryBalanceRejectKg) { this.factoryBalanceRejectKg = factoryBalanceRejectKg; }
 
+    public int getFactoryBalanceAGradePcs() { return factoryBalanceAGradePcs; }
+    public void setFactoryBalanceAGradePcs(int factoryBalanceAGradePcs) { this.factoryBalanceAGradePcs = factoryBalanceAGradePcs; }
+
+    public int getFactoryBalanceBGradePcs() { return factoryBalanceBGradePcs; }
+    public void setFactoryBalanceBGradePcs(int factoryBalanceBGradePcs) { this.factoryBalanceBGradePcs = factoryBalanceBGradePcs; }
+
+    public int getFactoryBalanceRejectPcs() { return factoryBalanceRejectPcs; }
+    public void setFactoryBalanceRejectPcs(int factoryBalanceRejectPcs) { this.factoryBalanceRejectPcs = factoryBalanceRejectPcs; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
@@ -187,9 +204,16 @@ public class Lot {
     public Date getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
 
+    public List<Transfer> getFactoryBalanceHistory() { return factoryBalanceHistory; }
+    public void setFactoryBalanceHistory(List<Transfer> factoryBalanceHistory) { this.factoryBalanceHistory = factoryBalanceHistory; }
+
     // Calculated properties
     public double getTotalFactoryBalanceKg() {
         return factoryBalanceAGradeKg + factoryBalanceBGradeKg + factoryBalanceRejectKg;
+    }
+
+    public int getTotalFactoryBalancePcs() {
+        return factoryBalanceAGradePcs + factoryBalanceBGradePcs + factoryBalanceRejectPcs;
     }
 
     public double getRemainingFabricKg() {
