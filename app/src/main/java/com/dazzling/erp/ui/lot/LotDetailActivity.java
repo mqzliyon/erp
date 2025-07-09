@@ -120,6 +120,10 @@ public class LotDetailActivity extends AppCompatActivity {
     private LineChart factoryBalanceAGradeRejectChart;
     private LineDataSet factoryBalanceAGradeRejectDataSet;
     private TextView factoryBalanceAGradeRejectText;
+    
+    private LineChart factoryBalanceBGradeRejectChart;
+    private LineDataSet factoryBalanceBGradeRejectDataSet;
+    private TextView factoryBalanceBGradeRejectText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1824,88 +1828,37 @@ public class LotDetailActivity extends AppCompatActivity {
         // Start chart simulation
         startFactoryBalanceBGradeChartSimulation();
 
-        // --- NEW SEPARATE CARD SECTION FOR B GRADE ---
-        CardView extraCard = new CardView(this);
-        extraCard.setRadius(dp(20));
-        extraCard.setCardElevation(dp(6));
-        extraCard.setUseCompatPadding(true);
-        FrameLayout.LayoutParams extraCardLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        extraCardLp.setMargins(dp(16), 0, dp(16), dp(24));
-        extraCard.setLayoutParams(extraCardLp);
-        extraCard.setContentPadding(dp(20), dp(20), dp(20), dp(20));
+        // --- REJECT BALANCE & CHART SECTION FOR B GRADE ---
+        // Add Reject Balance chart and then text below it
+        factoryBalanceBGradeRejectChart = new com.github.mikephil.charting.charts.LineChart(this);
+        factoryBalanceBGradeRejectChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
+        factoryBalanceBGradeRejectChart.setNoDataText("Loading chart...");
+        factoryBalanceBGradeRejectChart.setTouchEnabled(false);
+        factoryBalanceBGradeRejectChart.setDescription(new com.github.mikephil.charting.components.Description());
+        vbox.addView(factoryBalanceBGradeRejectChart);
 
-        LinearLayout extraVBox = new LinearLayout(this);
-        extraVBox.setOrientation(LinearLayout.VERTICAL);
-        extraVBox.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        factoryBalanceBGradeRejectText = new TextView(this);
+        if (currentLot != null) {
+            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            factoryBalanceBGradeRejectText.setText("B Grade Reject Balance: " + rejectPcs + " Pcs.");
+        } else {
+            factoryBalanceBGradeRejectText.setText("B Grade Reject Balance: 0 Pcs.");
+        }
+        factoryBalanceBGradeRejectText.setTextSize(14);
+        factoryBalanceBGradeRejectText.setTypeface(null, android.graphics.Typeface.BOLD);
+        factoryBalanceBGradeRejectText.setTextColor(android.graphics.Color.BLACK);
+        factoryBalanceBGradeRejectText.setPadding(0, dp(8), 0, dp(8));
+        vbox.addView(factoryBalanceBGradeRejectText);
 
-        // Chart for extra card
-        com.github.mikephil.charting.charts.LineChart extraChart = new com.github.mikephil.charting.charts.LineChart(this);
-        extraChart.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(180)));
-        extraChart.setNoDataText("Loading chart...");
-        extraChart.setTouchEnabled(false);
-        extraChart.setDescription(new com.github.mikephil.charting.components.Description());
-        // Add example data to show chart
-        java.util.ArrayList<com.github.mikephil.charting.data.Entry> extraEntries = new java.util.ArrayList<>();
-        for (int i = 0; i < 7; i++) extraEntries.add(new com.github.mikephil.charting.data.Entry(i, (float)(Math.random() * 20 + 5)));
-        com.github.mikephil.charting.data.LineDataSet extraDataSet = new com.github.mikephil.charting.data.LineDataSet(extraEntries, "Extra Balance");
-        extraDataSet.setColor(android.graphics.Color.parseColor("#F44336")); // Red color
-        extraDataSet.setCircleColor(android.graphics.Color.parseColor("#F44336")); // Red color
-        extraDataSet.setLineWidth(3f);
-        extraDataSet.setCircleRadius(5f);
-        extraDataSet.setDrawValues(false);
-        extraDataSet.setValueTextSize(10f);
-        extraDataSet.setValueTextColor(android.graphics.Color.BLACK);
-        extraDataSet.setMode(com.github.mikephil.charting.data.LineDataSet.Mode.CUBIC_BEZIER);
-        extraDataSet.setDrawCircles(true);
-        extraDataSet.setDrawCircleHole(true);
-        extraDataSet.setCircleHoleColor(android.graphics.Color.WHITE);
-        com.github.mikephil.charting.data.LineData extraData = new com.github.mikephil.charting.data.LineData(extraDataSet);
-        extraChart.setData(extraData);
-        // Configure chart appearance
-        extraChart.getXAxis().setDrawLabels(true);
-        extraChart.getXAxis().setGranularity(1f);
-        extraChart.getXAxis().setValueFormatter(new com.github.mikephil.charting.formatter.ValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-                int idx = (int) value;
-                return (idx >= 0 && idx < days.length) ? days[idx] : "";
-            }
-        });
-        extraChart.getAxisRight().setEnabled(false);
-        extraChart.getAxisLeft().setDrawGridLines(true);
-        extraChart.getAxisLeft().setGridColor(android.graphics.Color.LTGRAY);
-        extraChart.getAxisLeft().setGridLineWidth(0.5f);
-        extraChart.getXAxis().setDrawGridLines(false);
-        extraChart.getLegend().setEnabled(false);
-        extraChart.getAxisLeft().setAxisMinimum(0f);
-        extraChart.getAxisLeft().setAxisMaximum(40f);
-        extraChart.invalidate();
-        extraVBox.addView(extraChart);
-
-        // Add Reject Balance text below the extra chart
-        TextView rejectBalance = new TextView(this);
-        rejectBalance.setText("Reject Balance: 0 Pcs.");
-        rejectBalance.setTextSize(14);
-        rejectBalance.setTypeface(null, android.graphics.Typeface.BOLD);
-        rejectBalance.setTextColor(android.graphics.Color.BLACK);
-        rejectBalance.setPadding(0, dp(8), 0, dp(8));
-        extraVBox.addView(rejectBalance);
-
-        extraCard.addView(extraVBox);
-
-        // Create a vertical container to hold both cards
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        container.addView(card);
-        container.addView(extraCard);
-
-        // Wrap the whole section in a vertical ScrollView
+        // --- Wrap the card in a vertical ScrollView ---
         android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
         scrollView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        scrollView.addView(container);
-
+        scrollView.addView(card);
+        
+        // Start B Grade reject chart simulation and update reject balance
+        updateFactoryBalanceBGradeReject();
+        startFactoryBalanceBGradeRejectChartSimulation();
+        
         return scrollView;
     }
 
@@ -3894,6 +3847,67 @@ public class LotDetailActivity extends AppCompatActivity {
         factoryBalanceAGradeRejectChart.invalidate();
     }
 
+    // --- NEW: B Grade Reject Chart Simulation ---
+    private void startFactoryBalanceBGradeRejectChartSimulation() {
+        if (factoryBalanceBGradeRejectChart == null) return;
+        int currentBalance = 0;
+        if (currentLot != null) {
+            currentBalance = currentLot.getFactoryBalanceRejectPcs();
+        }
+        List<Entry> entries = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            float value;
+            if (i == 6) {
+                value = currentBalance;
+            } else if (i == 5) {
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.1f));
+            } else if (i == 4) {
+                value = Math.max(0, currentBalance - (int)(currentBalance * 0.2f));
+            } else {
+                float progress = (float) i / 5f;
+                value = Math.max(0, (int)(currentBalance * progress * 0.8f));
+            }
+            entries.add(new Entry(i, value));
+        }
+        factoryBalanceBGradeRejectDataSet = new LineDataSet(entries, "B Grade Reject");
+        factoryBalanceBGradeRejectDataSet.setColor(Color.parseColor("#F44336"));
+        factoryBalanceBGradeRejectDataSet.setCircleColor(Color.parseColor("#F44336"));
+        factoryBalanceBGradeRejectDataSet.setLineWidth(3f);
+        factoryBalanceBGradeRejectDataSet.setCircleRadius(5f);
+        factoryBalanceBGradeRejectDataSet.setDrawValues(true);
+        factoryBalanceBGradeRejectDataSet.setValueTextSize(10f);
+        factoryBalanceBGradeRejectDataSet.setValueTextColor(ContextCompat.getColor(this, R.color.md_theme_onSurface));
+        factoryBalanceBGradeRejectDataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        factoryBalanceBGradeRejectDataSet.setDrawCircles(true);
+        factoryBalanceBGradeRejectDataSet.setDrawCircleHole(true);
+        factoryBalanceBGradeRejectDataSet.setCircleHoleColor(Color.WHITE);
+        LineData data = new LineData(factoryBalanceBGradeRejectDataSet);
+        factoryBalanceBGradeRejectChart.setData(data);
+        factoryBalanceBGradeRejectChart.getXAxis().setDrawLabels(true);
+        factoryBalanceBGradeRejectChart.getXAxis().setGranularity(1f);
+        factoryBalanceBGradeRejectChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+                int idx = (int) value;
+                return (idx >= 0 && idx < days.length) ? days[idx] : "";
+            }
+        });
+        factoryBalanceBGradeRejectChart.getAxisRight().setEnabled(false);
+        factoryBalanceBGradeRejectChart.getAxisLeft().setDrawGridLines(true);
+        factoryBalanceBGradeRejectChart.getAxisLeft().setGridColor(ContextCompat.getColor(this, R.color.md_theme_onSurfaceVariant));
+        factoryBalanceBGradeRejectChart.getAxisLeft().setGridLineWidth(0.5f);
+        factoryBalanceBGradeRejectChart.getXAxis().setDrawGridLines(false);
+        factoryBalanceBGradeRejectChart.getLegend().setEnabled(false);
+        factoryBalanceBGradeRejectChart.getAxisLeft().setAxisMinimum(0f);
+        if (currentBalance > 0) {
+            factoryBalanceBGradeRejectChart.getAxisLeft().setAxisMaximum(currentBalance * 1.2f);
+        } else {
+            factoryBalanceBGradeRejectChart.getAxisLeft().setAxisMaximum(50f);
+        }
+        factoryBalanceBGradeRejectChart.invalidate();
+    }
+
     // --- NEW: Show Mark As A Reject Dialog ---
     private void showMarkAsARejectDialog() {
         // This dialog should match the embroidery reject dialog, but update A Grade reject pcs
@@ -3974,6 +3988,14 @@ public class LotDetailActivity extends AppCompatActivity {
         }
     }
 
+    // --- NEW: Update B Grade Reject Balance ---
+    private void updateFactoryBalanceBGradeReject() {
+        if (factoryBalanceBGradeRejectText != null && currentLot != null) {
+            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            factoryBalanceBGradeRejectText.setText("B Grade Reject Balance: " + rejectPcs + " Pcs.");
+        }
+    }
+
     // --- B GRADE: Show Mark As Reject Dialog ---
     private void showMarkAsBRejectDialog() {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
@@ -4029,7 +4051,9 @@ public class LotDetailActivity extends AppCompatActivity {
             public void onLotUpdated(com.dazzling.erp.models.Lot updatedLot) {
                 currentLot = updatedLot;
                 updateFactoryBalanceBGrade();
-                // Optionally update reject chart if you have one for B Grade
+                updateFactoryBalanceBGradeReject();
+                startFactoryBalanceBGradeChartSimulation();
+                startFactoryBalanceBGradeRejectChartSimulation();
                 showLoading(false);
                 Toast.makeText(LotDetailActivity.this, "Marked as rejected successfully!", Toast.LENGTH_SHORT).show();
             }

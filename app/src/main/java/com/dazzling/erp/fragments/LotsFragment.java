@@ -162,32 +162,9 @@ public class LotsFragment extends Fragment {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull android.view.MenuItem item) {
-        if (item.getItemId() == R.id.action_search) {
-            // Show the search bar when search icon is clicked
-            View searchBar = getView().findViewById(R.id.search_bar);
-            View searchOverlay = getView().findViewById(R.id.search_overlay);
-            if (searchBar != null) {
-                searchBar.setVisibility(View.VISIBLE);
-                searchBar.setAlpha(0f);
-                searchBar.setTranslationY(-100f);
-                searchBar.animate()
-                        .translationY(0f)
-                        .alpha(1f)
-                        .setDuration(400)
-                        .withEndAction(() -> {
-                            // Automatically focus and show keyboard after animation completes
-                            EditText editText = searchBar.findViewById(R.id.edit_text_search);
-                            if (editText != null) {
-                                editText.requestFocus();
-                                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-                                if (imm != null) {
-                                    imm.showSoftInput(editText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-                                }
-                            }
-                        })
-                        .start();
-                if (searchOverlay != null) searchOverlay.setVisibility(View.VISIBLE);
-            }
+        if (item.getItemId() == R.id.action_download) {
+            // Handle download functionality
+            showDownloadDialog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -523,5 +500,41 @@ public class LotsFragment extends Fragment {
         } catch (Exception e) {
             Log.e("LotsFragment", "Error in onPause", e);
         }
+    }
+
+    private void showDownloadDialog() {
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Download Options")
+            .setMessage("What would you like to download?")
+            .setPositiveButton("Download All Lots", (dialog, which) -> {
+                downloadAllLots();
+            })
+            .setNegativeButton("Download Selected", (dialog, which) -> {
+                downloadSelectedLots();
+            })
+            .setNeutralButton("Cancel", null)
+            .show();
+    }
+
+    private void downloadAllLots() {
+        // Show loading dialog
+        showLoadingDialog();
+        
+        // Simulate download process
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            hideLoadingDialog();
+            android.widget.Toast.makeText(requireContext(), "All lots downloaded successfully!", android.widget.Toast.LENGTH_SHORT).show();
+        }, 2000);
+    }
+
+    private void downloadSelectedLots() {
+        // Show loading dialog
+        showLoadingDialog();
+        
+        // Simulate download process
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            hideLoadingDialog();
+            android.widget.Toast.makeText(requireContext(), "Selected lots downloaded successfully!", android.widget.Toast.LENGTH_SHORT).show();
+        }, 2000);
     }
 } 
