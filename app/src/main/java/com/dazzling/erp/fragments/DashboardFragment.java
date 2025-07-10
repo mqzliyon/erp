@@ -307,8 +307,8 @@ public class DashboardFragment extends Fragment implements
      * Show fabrics details
      */
     private void showFabricsDetails() {
-        if (binding != null) {
-            Snackbar.make(binding.getRoot(), "Fabrics: " + fabrics.size() + " items", Snackbar.LENGTH_SHORT).show();
+        if (getActivity() instanceof com.dazzling.erp.MainActivity) {
+            ((com.dazzling.erp.MainActivity) getActivity()).navigateToFragment("fabrics");
         }
     }
     
@@ -316,8 +316,8 @@ public class DashboardFragment extends Fragment implements
      * Show cutting details
      */
     private void showCuttingDetails() {
-        if (binding != null) {
-            Snackbar.make(binding.getRoot(), "Cutting: " + cuttings.size() + " operations", Snackbar.LENGTH_SHORT).show();
+        if (getActivity() instanceof com.dazzling.erp.MainActivity) {
+            ((com.dazzling.erp.MainActivity) getActivity()).navigateToFragment("cutting");
         }
     }
     
@@ -325,8 +325,8 @@ public class DashboardFragment extends Fragment implements
      * Show lots details
      */
     private void showLotsDetails() {
-        if (binding != null) {
-            Snackbar.make(binding.getRoot(), "Lots: " + lots.size() + " lots", Snackbar.LENGTH_SHORT).show();
+        if (getActivity() instanceof com.dazzling.erp.MainActivity) {
+            ((com.dazzling.erp.MainActivity) getActivity()).navigateToFragment("lots");
         }
     }
     

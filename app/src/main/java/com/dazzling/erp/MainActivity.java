@@ -362,7 +362,6 @@ public class MainActivity extends AppCompatActivity implements
         try {
             FragmentManager fragmentManager = getSupportFragmentManager();
             fragmentManager.beginTransaction()
-                .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                 .replace(R.id.fragment_container, fragment)
                 .commit();
             currentFragment = fragment;
@@ -694,7 +693,7 @@ public class MainActivity extends AppCompatActivity implements
     /**
      * Navigate to a specific fragment and update bottom navigation
      */
-    private void navigateToFragment(String fragmentType) {
+    public void navigateToFragment(String fragmentType) {
         try {
             Log.d(TAG, "navigateToFragment: Navigating to " + fragmentType);
             BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);

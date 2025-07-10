@@ -27,6 +27,7 @@ public class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.LotViewHolder>
         void onView(Lot lot);
         void onEdit(Lot lot);
         void onDelete(Lot lot);
+        void onDownload(Lot lot);
     }
 
     private OnLotMenuClickListener menuClickListener;
@@ -144,7 +145,10 @@ public class LotsAdapter extends RecyclerView.Adapter<LotsAdapter.LotViewHolder>
             PopupMenu popup = new PopupMenu(holder.menuButton.getContext(), holder.menuButton);
             popup.getMenuInflater().inflate(R.menu.menu_lot_item, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.action_update) {
+                if (item.getItemId() == R.id.action_download) {
+                    if (menuClickListener != null) menuClickListener.onDownload(lot);
+                    return true;
+                } else if (item.getItemId() == R.id.action_update) {
                     if (menuClickListener != null) menuClickListener.onEdit(lot);
                     return true;
                 } else if (item.getItemId() == R.id.action_delete) {

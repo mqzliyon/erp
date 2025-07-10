@@ -156,4 +156,7 @@ dependencies {
 
     // Lottie for animations
     implementation("com.airbnb.android:lottie:6.4.0")
+    
+    // PDF Generation
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }

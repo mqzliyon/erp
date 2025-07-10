@@ -198,6 +198,10 @@ public class LotsFragment extends Fragment {
             @Override
             public void onEdit(Lot lot) {}
             @Override
+            public void onDownload(Lot lot) {
+                downloadSingleLot(lot);
+            }
+            @Override
             public void onDelete(Lot lot) {
                 new android.app.AlertDialog.Builder(requireContext())
                     .setTitle("Delete Lot")
@@ -438,6 +442,12 @@ public class LotsFragment extends Fragment {
         loadingDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         loadingDialog.setContentView(R.layout.dialog_loading_lottie);
         loadingDialog.setCancelable(false);
+
+        TextView loadingText = loadingDialog.findViewById(R.id.loading_text);
+        if (loadingText != null) {
+            loadingText.setText("Generating PDF for all lots. Please wait...");
+        }
+
         LottieAnimationView lottie = loadingDialog.findViewById(R.id.lottie_loader);
         lottie.setAnimation("loader.json");
         lottie.playAnimation();
@@ -504,27 +514,34 @@ public class LotsFragment extends Fragment {
 
     private void showDownloadDialog() {
         new android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Download Options")
-            .setMessage("What would you like to download?")
-            .setPositiveButton("Download All Lots", (dialog, which) -> {
+            .setTitle("All Lots Generate Pdf")
+            .setMessage("Do you want to generate a PDF for all lots?")
+            .setPositiveButton("YES, GENERATE PDF", (dialog, which) -> {
                 downloadAllLots();
             })
-            .setNegativeButton("Download Selected", (dialog, which) -> {
-                downloadSelectedLots();
-            })
-            .setNeutralButton("Cancel", null)
+            .setNegativeButton("NO, CANCEL", null)
             .show();
     }
 
     private void downloadAllLots() {
-        // Show loading dialog
-        showLoadingDialog();
-        
-        // Simulate download process
+        requireActivity().runOnUiThread(this::showLoadingDialog);
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            hideLoadingDialog();
-            android.widget.Toast.makeText(requireContext(), "All lots downloaded successfully!", android.widget.Toast.LENGTH_SHORT).show();
-        }, 2000);
+            new Thread(() -> {
+                try {
+                    com.dazzling.erp.utils.PdfGenerator pdfGenerator = new com.dazzling.erp.utils.PdfGenerator(requireContext());
+                    String pdfUriString = pdfGenerator.generateAllLotsReportToDownloads(lotsList);
+                    requireActivity().runOnUiThread(() -> {
+                        hideLoadingDialog();
+                        showPdfSuccessDialog(pdfUriString, "All Lots");
+                    });
+                } catch (Exception e) {
+                    requireActivity().runOnUiThread(() -> {
+                        hideLoadingDialog();
+                        showPdfErrorDialog(e.getMessage());
+                    });
+                }
+            }).start();
+        }, 200); // 200ms delay to let the animation start
     }
 
     private void downloadSelectedLots() {
@@ -536,5 +553,94 @@ public class LotsFragment extends Fragment {
             hideLoadingDialog();
             android.widget.Toast.makeText(requireContext(), "Selected lots downloaded successfully!", android.widget.Toast.LENGTH_SHORT).show();
         }, 2000);
+    }
+
+    private void downloadSingleLot(Lot lot) {
+        // Show confirmation dialog for PDF generation
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Generate PDF Report")
+            .setMessage("Are you sure you want to generate a professional PDF report for " + lot.getLotNumber() + "?")
+            .setPositiveButton("Yes, Generate PDF", (dialog, which) -> {
+                generatePdfReport(lot);
+            })
+            .setNegativeButton("No, Cancel", null)
+            .show();
+    }
+
+    private void generatePdfReport(Lot lot) {
+        // Show loading dialog
+        showLoadingDialog();
+        
+        // Run PDF generation in background
+        new Thread(() -> {
+            try {
+                com.dazzling.erp.utils.PdfGenerator pdfGenerator = new com.dazzling.erp.utils.PdfGenerator(requireContext());
+                String pdfUriString = pdfGenerator.generateLotReportToDownloads(lot);
+                
+                // Show success message on main thread
+                requireActivity().runOnUiThread(() -> {
+                    hideLoadingDialog();
+                    showPdfSuccessDialog(pdfUriString, lot.getLotNumber());
+                });
+                
+            } catch (Exception e) {
+                // Show error message on main thread
+                requireActivity().runOnUiThread(() -> {
+                    hideLoadingDialog();
+                    showPdfErrorDialog(e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    private void showPdfSuccessDialog(String pdfUriString, String lotNumber) {
+        String fileName = "Lot_" + (lotNumber != null ? lotNumber.replaceAll("[^a-zA-Z0-9\\-_]", "_") : "Unknown") + "_" + 
+                         new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(new java.util.Date()) + ".pdf";
+        
+        // Show Toast message first
+        android.widget.Toast.makeText(requireContext(), "PDF saved to Downloads: " + fileName, android.widget.Toast.LENGTH_LONG).show();
+        
+        // Then show dialog with option to open
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle("PDF Generated Successfully!")
+            .setMessage("PDF saved to Downloads: " + fileName + "\n\nWould you like to open it now?")
+            .setPositiveButton("Open PDF", (dialog, which) -> {
+                openPdfFile(pdfUriString);
+            })
+            .setNegativeButton("OK", null)
+            .show();
+    }
+
+    private void showPdfErrorDialog(String errorMessage) {
+        new android.app.AlertDialog.Builder(requireContext())
+            .setTitle("PDF Generation Failed")
+            .setMessage("Failed to generate PDF report: " + errorMessage)
+            .setPositiveButton("OK", null)
+            .show();
+    }
+
+    private void openPdfFile(String pdfUriString) {
+        try {
+            android.net.Uri uri = android.net.Uri.parse(pdfUriString);
+            
+            // Create intent for viewing PDF
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            
+            // Try to open with chooser
+            try {
+                android.content.Intent chooserIntent = android.content.Intent.createChooser(intent, "Open PDF with");
+                chooserIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(chooserIntent);
+            } catch (android.content.ActivityNotFoundException e) {
+                // No app can handle the intent
+                android.widget.Toast.makeText(requireContext(), "No PDF viewer app installed", android.widget.Toast.LENGTH_LONG).show();
+            }
+            
+        } catch (Exception e) {
+            android.widget.Toast.makeText(requireContext(), "Error opening PDF: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 } 
