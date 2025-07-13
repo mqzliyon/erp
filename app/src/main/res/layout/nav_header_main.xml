@@ -16,7 +16,7 @@
         android:layout_height="64dp"
         android:layout_marginBottom="8dp"
         android:contentDescription="Profile Image"
-        android:src="@drawable/ic_person_circle"
+        android:src="@drawable/ic_logo"
         android:scaleType="centerCrop" />
 
     <TextView
@@ -24,7 +24,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="User Name"
+        android:text="User:"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1"
         android:textSize="16sp"
         android:textStyle="bold"
@@ -36,7 +36,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="user@example.com"
+        android:text="Email: user@example.com"
         android:textAppearance="@style/TextAppearance.AppCompat.Body2"
         android:textSize="14sp"
         android:maxLines="1"
@@ -46,7 +46,7 @@
         android:id="@+id/nav_header_role"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Role: Manager"
+        android:text="Role: CEO"
         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
         android:textSize="12sp"
         android:maxLines="1"

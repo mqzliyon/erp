@@ -72,6 +72,13 @@
             android:windowSoftInputMode="adjustResize" />
             
         <activity
+            android:name=".ui.auth.SignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ERP"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
+            
+        <activity
             android:name=".ui.lot.LotDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.ERP"

@@ -28,4 +28,6 @@
     <color name="md_theme_onSurface">#1C1B1F</color>
     <color name="md_theme_onSurfaceVariant">#49454F</color>
     <color name="blue">#2196F3</color>
+    <color name="primary_color">#6750A4</color>
+    <color name="error_color">#D32F2F</color>
 </resources>

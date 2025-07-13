@@ -149,6 +149,12 @@ public class FirebaseAuthService {
                         if (documentSnapshot.exists()) {
                             User user = documentSnapshot.toObject(User.class);
                             if (user != null) {
+                                // MIGRATION: If role is "operator", update to "CEO"
+                                if ("operator".equalsIgnoreCase(user.getRole())) {
+                                    user.setRole("CEO");
+                                    // Update Firestore
+                                    mFirestore.collection("users").document(uid).update("role", "CEO");
+                                }
                                 Log.d(TAG, "User data fetched successfully: " + user.getEmail());
                                 if (mAuthCallback != null) {
                                     mAuthCallback.onUserFetched(user);
@@ -194,12 +200,12 @@ public class FirebaseAuthService {
             String email = firebaseUser.getEmail();
             String displayName = firebaseUser.getDisplayName();
             
-            // Create a basic user with default values
+            // Create a basic user with default values - only CEO and Manager roles
             User user = new User(
                 uid,
                 email != null ? email : "unknown@email.com",
-                displayName != null ? displayName : "User",
-                "operator", // default role
+                displayName != null ? displayName : "CEO", // Use CEO as default
+                "CEO", // default role - only CEO and Manager available
                 "General"   // default department
             );
             
@@ -274,5 +280,29 @@ public class FirebaseAuthService {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Firebase connection test failed: " + e.getMessage());
                 });
+    }
+
+    // Update user name in Firestore
+    public void updateUserName(String uid, String newName, final UpdateCallback callback) {
+        mFirestore.collection("users").document(uid)
+            .update("displayName", newName)
+            .addOnSuccessListener(aVoid -> callback.onUpdate(true))
+            .addOnFailureListener(e -> callback.onUpdate(false));
+    }
+
+    // Change password using Firebase Auth
+    public void changePassword(String email, String newPassword, final UpdateCallback callback) {
+        FirebaseUser user = mAuth.getCurrentUser();
+        if (user != null) {
+            user.updatePassword(newPassword)
+                .addOnSuccessListener(aVoid -> callback.onUpdate(true))
+                .addOnFailureListener(e -> callback.onUpdate(false));
+        } else {
+            callback.onUpdate(false);
+        }
+    }
+
+    public interface UpdateCallback {
+        void onUpdate(boolean success);
     }
 } 

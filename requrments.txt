@@ -1,0 +1,73 @@
+I have already implemented the CEO role, and now I want to add a new role called "Manager". Please update the app with the following requirements:
+
+🔐 User Sign-Up:
+
+Create a sign-up screen with the following four fields:
+
+1. Email
+
+
+2. Password
+
+
+3. Confirm Password
+
+
+4. Role Selection (Dropdown or Radio Button with options: CEO, Manager)
+
+
+
+Make the role field required.
+
+The selected role must be saved in Firebase Auth or Firestore along with the user account.
+
+
+
+---
+
+🧑‍💼 Role-Based Access:
+
+CEO Role: Already implemented. Should retain full access to all menus and data.
+
+Manager Role (new):
+
+The Manager should only see data and UI relevant to their role.
+
+Managers must not see any CEO data or CEO-only menus.
+
+
+
+
+---
+
+📱 Manager Role UI:
+
+When a user with the Manager role logs in, show a Bottom Navigation Menu with only the following 3 items:
+
+1. Rongdhonu Office (this should be the default selected tab)
+
+
+2. Uttara Office
+
+
+3. Payment Request
+
+
+
+Each of these menu items should load a separate fragment or activity showing Manager-specific data.
+
+The bottom navigation should not show CEO features or layouts.
+
+
+
+---
+
+✅ Additional Notes:
+
+Use Firebase Authentication for login/signup.
+
+Use Firestore to store and fetch user role and associated data.
+
+Use proper condition checks after login to route the user to the appropriate dashboard based on their role (CEO or Manager).
+
+Make sure role-based access is secure and data is not shared between roles.s

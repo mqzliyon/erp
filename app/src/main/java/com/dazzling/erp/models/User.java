@@ -10,7 +10,7 @@ public class User {
     private String uid;
     private String email;
     private String displayName;
-    private String role; // admin, manager, operator
+    private String role; // CEO, Manager
     private String department;
     private long createdAt;
     private boolean isActive;
@@ -28,8 +28,8 @@ public class User {
         this.department = department;
         this.createdAt = System.currentTimeMillis();
         this.isActive = true;
-        this.admin = "admin".equals(role);
-        this.manager = "manager".equals(role) || "admin".equals(role);
+        this.admin = "CEO".equals(role);
+        this.manager = "Manager".equals(role) || "CEO".equals(role);
     }
 
     // Getters and Setters
@@ -45,8 +45,8 @@ public class User {
     public String getRole() { return role; }
     public void setRole(String role) { 
         this.role = role; 
-        this.admin = "admin".equals(role);
-        this.manager = "manager".equals(role) || "admin".equals(role);
+        this.admin = "CEO".equals(role);
+        this.manager = "Manager".equals(role) || "CEO".equals(role);
     }
 
     public String getDepartment() { return department; }
@@ -67,10 +67,10 @@ public class User {
 
     // Legacy methods for backward compatibility
     public boolean isAdminRole() {
-        return "admin".equals(role);
+        return "CEO".equals(role);
     }
 
     public boolean isManagerRole() {
-        return "manager".equals(role) || "admin".equals(role);
+        return "Manager".equals(role) || "CEO".equals(role);
     }
 } 

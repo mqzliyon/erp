@@ -25,6 +25,9 @@ import com.dazzling.erp.fragments.DashboardFragment;
 import com.dazzling.erp.fragments.FabricsFragment;
 import com.dazzling.erp.fragments.LotsFragment;
 import com.dazzling.erp.fragments.CuttingFragment;
+import com.dazzling.erp.fragments.ManagerRongdhonuFragment;
+import com.dazzling.erp.fragments.ManagerUttaraFragment;
+import com.dazzling.erp.fragments.ManagerPaymentFragment;
 import com.dazzling.erp.models.User;
 import com.dazzling.erp.services.FirebaseAuthService;
 import com.dazzling.erp.ui.auth.LoginActivity;
@@ -36,6 +39,10 @@ import android.os.StrictMode;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.navigation.NavigationView;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.core.view.GravityCompat;
 
 import com.google.firebase.auth.FirebaseUser;
 
@@ -90,27 +97,57 @@ public class MainActivity extends AppCompatActivity implements
             MaterialToolbar toolbar = findViewById(R.id.top_app_bar);
             setSupportActionBar(toolbar);
             
-            // Setup BottomNavigationView
-            BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);
-            bottomNav.setOnItemSelectedListener(item -> {
+            // Setup Navigation Drawer
+            DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            
+            // Create ActionBarDrawerToggle
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawerLayout, toolbar, 
+                R.string.navigation_drawer_open, 
+                R.string.navigation_drawer_close
+            );
+            drawerLayout.addDrawerListener(toggle);
+            toggle.syncState();
+            
+            // Setup NavigationView item selection listener (CEO only)
+            navigationView.setNavigationItemSelectedListener(item -> {
                 int id = item.getItemId();
-                if (id == R.id.nav_dashboard) {
-                    loadFragment(new DashboardFragment(), "Dashboard");
-                    return true;
-                } else if (id == R.id.nav_fabrics) {
-                    loadFragment(new FabricsFragment(), "Fabrics Management");
-                    return true;
-                } else if (id == R.id.nav_cutting) {
-                    loadFragment(new CuttingFragment(), "Cutting Operations");
-                    return true;
-                } else if (id == R.id.nav_lots) {
-                    loadFragment(new LotsFragment(), "Lot Management");
+                if (id == R.id.nav_settings) {
+                    // Open ProfileFragment for both CEO and Manager
+                    loadFragment(new com.dazzling.erp.fragments.ProfileFragment(), "Profile");
+                    drawerLayout.closeDrawer(GravityCompat.START);
                     return true;
                 }
+                // Check if user has CEO role
+                if (currentUser != null && "CEO".equals(currentUser.getRole())) {
+                    if (id == R.id.nav_rongdhonu_office) {
+                        // Handle Rongdhonu Office selection
+                        showSnackbar("Rongdhonu Office selected");
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                        return true;
+                    } else if (id == R.id.nav_uttara_office) {
+                        // Handle Uttara Office selection
+                        showSnackbar("Uttara Office selected");
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                        return true;
+                    } else if (id == R.id.nav_payment_request) {
+                        // Handle Payment Request selection
+                        showSnackbar("Payment Request selected");
+                        drawerLayout.closeDrawer(GravityCompat.START);
+                        return true;
+                    }
+                } else {
+                    // User is not CEO - show access denied message
+                    showSnackbar("Access denied. CEO role required.");
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                    return true;
+                }
+                
                 return false;
             });
             
-            // Check authentication status
+            // Check authentication status first
             checkAuthenticationStatus();
             
             // Handle navigation from other activities
@@ -203,6 +240,65 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
     
+    /**
+     * Setup bottom navigation based on user role
+     */
+    private void setupBottomNavigation() {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav_view);
+        
+        if (currentUser != null && "Manager".equals(currentUser.getRole())) {
+            // Manager role - show manager menu
+            bottomNav.getMenu().clear();
+            bottomNav.inflateMenu(R.menu.manager_bottom_navigation_menu);
+            
+            bottomNav.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_manager_rongdhonu) {
+                    loadFragment(new ManagerRongdhonuFragment(), "Rongdhonu Office");
+                    return true;
+                } else if (id == R.id.nav_manager_uttara) {
+                    loadFragment(new ManagerUttaraFragment(), "Uttara Office");
+                    return true;
+                } else if (id == R.id.nav_manager_payment) {
+                    loadFragment(new ManagerPaymentFragment(), "Payment Request");
+                    return true;
+                }
+                return false;
+            });
+            
+            // Set default fragment for Manager
+            loadFragment(new ManagerRongdhonuFragment(), "Rongdhonu Office");
+            bottomNav.setSelectedItemId(R.id.nav_manager_rongdhonu);
+            
+        } else {
+            // CEO role - show full menu
+            bottomNav.getMenu().clear();
+            bottomNav.inflateMenu(R.menu.bottom_navigation_menu);
+            
+            bottomNav.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_dashboard) {
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                    return true;
+                } else if (id == R.id.nav_fabrics) {
+                    loadFragment(new FabricsFragment(), "Fabrics Management");
+                    return true;
+                } else if (id == R.id.nav_cutting) {
+                    loadFragment(new CuttingFragment(), "Cutting Operations");
+                    return true;
+                } else if (id == R.id.nav_lots) {
+                    loadFragment(new LotsFragment(), "Lot Management");
+                    return true;
+                }
+                return false;
+            });
+            
+            // Set default fragment for CEO
+            loadFragment(new DashboardFragment(), "Dashboard");
+            bottomNav.setSelectedItemId(R.id.nav_dashboard);
+        }
+    }
+
     /**
      * Initialize search bar with error handling
      */
@@ -423,6 +519,12 @@ public class MainActivity extends AppCompatActivity implements
     
     @Override
     public void onBackPressed() {
+        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return;
+        }
+        
         // Check if we're on the first fragment (Dashboard)
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
         
@@ -479,19 +581,17 @@ public class MainActivity extends AppCompatActivity implements
         this.currentUser = user;
         
         try {
-            Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-            if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
-                ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
-            }
-            
             // Hide loading indicator
             showGlobalLoader(false);
             updateNavigationHeader(user);
             
+            // Setup navigation based on user role
+            setupBottomNavigation();
+            
             // Start background service to prevent process killing
             startBackgroundService();
             
-            // Check if we have a navigation intent, if not, load dashboard
+            // Check if we have a navigation intent, if not, load appropriate default
             String navigateTo = getIntent().getStringExtra("navigate_to");
             if (navigateTo != null) {
                 // Navigate to the requested fragment
@@ -499,15 +599,23 @@ public class MainActivity extends AppCompatActivity implements
                 // Clear the intent extra to prevent reprocessing
                 getIntent().removeExtra("navigate_to");
             } else {
-                // Load default dashboard fragment only after successful authentication
-                loadFragment(new DashboardFragment(), "Dashboard");
+                // Load appropriate default fragment based on user role
+                if (user != null && "Manager".equals(user.getRole())) {
+                    loadFragment(new com.dazzling.erp.fragments.ManagerRongdhonuFragment(), "Rongdhonu Office");
+                } else {
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                }
             }
             
         } catch (Exception e) {
             Log.e(TAG, "Error in onAuthSuccess", e);
-            // Fallback: just hide loader and show dashboard
+            // Fallback: just hide loader and show appropriate default
             showGlobalLoader(false);
-            loadFragment(new DashboardFragment(), "Dashboard");
+            if (user != null && "Manager".equals(user.getRole())) {
+                loadFragment(new com.dazzling.erp.fragments.ManagerRongdhonuFragment(), "Rongdhonu Office");
+            } else {
+                loadFragment(new DashboardFragment(), "Dashboard");
+            }
         }
     }
     
@@ -541,9 +649,13 @@ public class MainActivity extends AppCompatActivity implements
             // Hide loading indicator
             showGlobalLoader(false);
             updateNavigationHeader(user);
+            
+            // Setup navigation based on user role
+            setupBottomNavigation();
+            
             Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show();
             
-            // Check if we have a navigation intent, if not, load dashboard
+            // Check if we have a navigation intent, if not, load appropriate default
             String navigateTo = getIntent().getStringExtra("navigate_to");
             if (navigateTo != null) {
                 // Navigate to the requested fragment
@@ -551,14 +663,22 @@ public class MainActivity extends AppCompatActivity implements
                 // Clear the intent extra to prevent reprocessing
                 getIntent().removeExtra("navigate_to");
             } else {
-                // Load default dashboard fragment only after successful authentication
-                loadFragment(new DashboardFragment(), "Dashboard");
+                // Load appropriate default fragment based on user role
+                if (user != null && "Manager".equals(user.getRole())) {
+                    loadFragment(new com.dazzling.erp.fragments.ManagerRongdhonuFragment(), "Rongdhonu Office");
+                } else {
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onUserCreated", e);
-            // Fallback: just hide loader and show dashboard
+            // Fallback: just hide loader and show appropriate default
             showGlobalLoader(false);
-            loadFragment(new DashboardFragment(), "Dashboard");
+            if (user != null && "Manager".equals(user.getRole())) {
+                loadFragment(new com.dazzling.erp.fragments.ManagerRongdhonuFragment(), "Rongdhonu Office");
+            } else {
+                loadFragment(new DashboardFragment(), "Dashboard");
+            }
         }
     }
     
@@ -568,26 +688,37 @@ public class MainActivity extends AppCompatActivity implements
         this.currentUser = user;
         
         try {
-            Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-            if (current instanceof com.dazzling.erp.fragments.DashboardFragment) {
-                ((com.dazzling.erp.fragments.DashboardFragment) current).reloadDashboardData();
-            }
             // Hide loading indicator
             showGlobalLoader(false);
             updateNavigationHeader(user);
             
-            // Check if we have a navigation intent, if not, load dashboard
+            // Setup navigation based on user role
+            setupBottomNavigation();
+            
+            // Check if we have a navigation intent, if not, load appropriate default
             String navigateTo = getIntent().getStringExtra("navigate_to");
             if (navigateTo != null) {
                 // Navigate to the requested fragment
                 navigateToFragment(navigateTo);
                 // Clear the intent extra to prevent reprocessing
                 getIntent().removeExtra("navigate_to");
+            } else {
+                // Load appropriate default fragment based on user role
+                if (user != null && "Manager".equals(user.getRole())) {
+                    loadFragment(new ManagerRongdhonuFragment(), "Rongdhonu Office");
+                } else {
+                    loadFragment(new DashboardFragment(), "Dashboard");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onUserFetched", e);
-            // Fallback: just hide loader
+            // Fallback: just hide loader and show appropriate default
             showGlobalLoader(false);
+            if (user != null && "Manager".equals(user.getRole())) {
+                loadFragment(new ManagerRongdhonuFragment(), "Rongdhonu Office");
+            } else {
+                loadFragment(new DashboardFragment(), "Dashboard");
+            }
         }
     }
     
@@ -596,12 +727,62 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void updateNavigationHeader(User user) {
         try {
+            // Update toolbar title
             if (user != null && getSupportActionBar() != null) {
                 String displayName = user.getDisplayName();
                 if (displayName != null && !displayName.isEmpty()) {
                     getSupportActionBar().setTitle(displayName + " - ERP");
                 } else {
                     getSupportActionBar().setTitle("ERP System");
+                }
+            }
+            
+            // Update navigation drawer header
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            if (navigationView != null) {
+                View headerView = navigationView.getHeaderView(0);
+                if (headerView != null) {
+                    TextView nameTextView = headerView.findViewById(R.id.nav_header_name);
+                    TextView emailTextView = headerView.findViewById(R.id.nav_header_email);
+                    
+                    if (user != null) {
+                        // Get user name - use role if display name is generic or empty
+                        String displayName = user.getDisplayName();
+                        String userRole = user.getRole();
+                        
+                        // If display name is generic ("User") or empty, use the role instead
+                        String userName = displayName;
+                        if (displayName == null || displayName.isEmpty() || "User".equals(displayName)) {
+                            userName = userRole != null ? userRole : "CEO";
+                        }
+                        
+                        // Update user name
+                        nameTextView.setText("User: " + userName);
+                        
+                        // Update email
+                        String email = user.getEmail();
+                        if (email != null && !email.isEmpty()) {
+                            emailTextView.setText("Email: " + email);
+                        } else {
+                            emailTextView.setText("Email: No email available");
+                        }
+                        
+                        // Update role to show user name as role (same as user name)
+                        TextView roleTextView = headerView.findViewById(R.id.nav_header_role);
+                        if (roleTextView != null) {
+                            roleTextView.setText("Role: " + userName);
+                        }
+                    } else {
+                        // Default values if no user
+                        nameTextView.setText("User: Guest");
+                        emailTextView.setText("Email: No email available");
+                        
+                        // Default role
+                        TextView roleTextView = headerView.findViewById(R.id.nav_header_role);
+                        if (roleTextView != null) {
+                            roleTextView.setText("Role: CEO");
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

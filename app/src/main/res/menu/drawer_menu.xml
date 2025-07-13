@@ -1,65 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+<menu xmlns:app="http://schemas.android.com/apk/res/auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
     
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_dashboard"
-            android:icon="@drawable/ic_dashboard"
-            android:title="Dashboard" />
+            android:id="@+id/nav_rongdhonu_office"
+            android:icon="@drawable/ic_office"
+            android:title="Rongdhonu Office" />
         
         <item
-            android:id="@+id/nav_fabrics"
-            android:icon="@drawable/ic_fabric"
-            android:title="Fabrics Management" />
+            android:id="@+id/nav_uttara_office"
+            android:icon="@drawable/ic_office"
+            android:title="Uttara Office" />
         
         <item
-            android:id="@+id/nav_cutting"
-            android:icon="@drawable/ic_cutting"
-            android:title="Cutting Operations" />
+            android:id="@+id/nav_payment_request"
+            android:icon="@drawable/ic_payment"
+            android:title="Payment Request" />
         
         <item
-            android:id="@+id/nav_lots"
-            android:icon="@drawable/ic_lot"
-            android:title="Lot Management" />
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_settings"
+            android:title="Settings" />
     </group>
-    
-    <item android:title="Reports">
-        <menu>
-            <item
-                android:id="@+id/nav_reports_fabric"
-                android:icon="@drawable/ic_report"
-                android:title="Fabric Reports" />
-            
-            <item
-                android:id="@+id/nav_reports_cutting"
-                android:icon="@drawable/ic_report"
-                android:title="Cutting Reports" />
-            
-            <item
-                android:id="@+id/nav_reports_lot"
-                android:icon="@drawable/ic_report"
-                android:title="Lot Reports" />
-        </menu>
-    </item>
-
-    <item android:title="Settings">
-        <menu>
-            <item
-                android:id="@+id/nav_profile"
-                android:icon="@drawable/ic_person"
-                android:title="Profile" />
-            
-            <item
-                android:id="@+id/nav_settings"
-                android:icon="@drawable/ic_dashboard"
-                android:title="Settings" />
-            
-            <item
-                android:id="@+id/nav_logout"
-                android:icon="@drawable/ic_person"
-                android:title="Logout" />
-        </menu>
-    </item>
     
 </menu> 

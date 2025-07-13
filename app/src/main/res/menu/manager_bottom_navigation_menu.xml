@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/nav_manager_rongdhonu"
+        android:icon="@drawable/ic_office"
+        android:title="Rongdhonu Office" />
+    
+    <item
+        android:id="@+id/nav_manager_uttara"
+        android:icon="@drawable/ic_office"
+        android:title="Uttara Office" />
+    
+    <item
+        android:id="@+id/nav_manager_payment"
+        android:icon="@drawable/ic_payment"
+        android:title="Payment Request" />
+    
+</menu> 

@@ -143,11 +143,11 @@ public class LoginActivity extends AppCompatActivity implements FirebaseAuthServ
     }
     
     /**
-     * Show register dialog
+     * Navigate to sign up activity
      */
     private void showRegisterDialog() {
-        // TODO: Implement register dialog
-        Snackbar.make(binding.getRoot(), "Register functionality coming soon!", Snackbar.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, SignUpActivity.class);
+        startActivity(intent);
     }
     
     /**

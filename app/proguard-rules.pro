@@ -19,3 +19,22 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# PDF Box library rules
+-dontwarn com.gemalto.jp2.**
+-keep class com.gemalto.jp2.** { *; }
+
+# Firebase Performance rules
+-dontwarn com.google.firebase.perf.**
+-keep class com.google.firebase.perf.** { *; }
+
+# Lottie rules
+-keep class com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**
+
+# Firebase rules
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Keep all classes in the app package
+-keep class com.dazzling.erp.** { *; }
