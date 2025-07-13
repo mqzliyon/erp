@@ -122,8 +122,9 @@ public class MainActivity extends AppCompatActivity implements
                 // Check if user has CEO role
                 if (currentUser != null && "CEO".equals(currentUser.getRole())) {
                     if (id == R.id.nav_rongdhonu_office) {
-                        // Handle Rongdhonu Office selection
-                        showSnackbar("Rongdhonu Office selected");
+                        // Navigate to CEO Rongdhonu Office Activity
+                        Intent intent = new Intent(this, com.dazzling.erp.ui.ceo.CeoRongdhonuOfficeActivity.class);
+                        startActivity(intent);
                         drawerLayout.closeDrawer(GravityCompat.START);
                         return true;
                     } else if (id == R.id.nav_uttara_office) {

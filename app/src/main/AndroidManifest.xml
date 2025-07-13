@@ -84,6 +84,12 @@
             android:theme="@style/Theme.ERP"
             android:screenOrientation="portrait" />
             
+        <activity
+            android:name=".ui.ceo.CeoRongdhonuOfficeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ERP"
+            android:screenOrientation="portrait" />
+            
         <!-- Service for background operations -->
         <service
             android:name=".services.BackgroundService"
