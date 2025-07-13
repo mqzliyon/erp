@@ -214,9 +214,7 @@ public class PdfGenerator {
         currentY -= 12;
 
         // Footer: page number
-        drawPageNumberFooter(contentStream, pageNum, totalPages);
-        drawSignature(contentStream);
-        drawDeveloperCredit(contentStream);
+        drawCustomFooter(contentStream, pageNum, totalPages);
         contentStream.close();
     }
     
@@ -290,9 +288,7 @@ public class PdfGenerator {
         addText("• Office Shipment: " + formatQuantityWithBoth(lot.getOfficeShipmentKg(), lot.getOfficeShipmentPcs()), MARGIN + 20, currentY, 11, false);
         
         // Footer: page number
-        drawPageNumberFooter(contentStream, pageNum, totalPages);
-        drawSignature(contentStream);
-        drawDeveloperCredit(contentStream);
+        drawCustomFooter(contentStream, pageNum, totalPages);
         contentStream.close();
     }
     
@@ -391,9 +387,7 @@ public class PdfGenerator {
         addText("Last Updated: " + formatDate(lot.getUpdatedAt()), MARGIN + 20, currentY, 11, false);
         
         // Footer: page number
-        drawPageNumberFooter(contentStream, pageNum, totalPages);
-        drawSignature(contentStream);
-        drawDeveloperCredit(contentStream);
+        drawCustomFooter(contentStream, pageNum, totalPages);
         contentStream.close();
     }
     
@@ -485,9 +479,7 @@ public class PdfGenerator {
         addWrappedText(notes, MARGIN + 20, currentY, 12, false, PAGE_WIDTH - 2 * MARGIN - 40);
         
         // Footer: page number
-        drawPageNumberFooter(contentStream, pageNum, totalPages);
-        drawSignature(contentStream);
-        drawDeveloperCredit(contentStream);
+        drawCustomFooter(contentStream, pageNum, totalPages);
         contentStream.close();
     }
     
@@ -693,7 +685,7 @@ public class PdfGenerator {
         contentStream.showText(lotNumberText);
         contentStream.endText();
         // Report Date (right)
-        String reportDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String reportDate = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
         float reportDateWidth = PDType1Font.HELVETICA.getStringWidth("Report Date: " + reportDate) / 1000 * infoValueFontSize;
         contentStream.beginText();
         contentStream.newLineAtOffset(PAGE_WIDTH - MARGIN - reportDateWidth, infoY);
@@ -736,6 +728,10 @@ public class PdfGenerator {
         // No separator after last section
 
         contentStream.close();
+        // Draw the custom footer for single-lot PDF
+        PDPageContentStream cs = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true);
+        drawCustomFooter(cs, 1, 1);
+        cs.close();
     }
 
     // Draws the logo and title at the top, centered as a group
@@ -885,10 +881,10 @@ public class PdfGenerator {
 
     // Custom footer: matches provided image with signature image, developer credit, and line
     private void drawCustomFooter(PDPageContentStream cs, int pageNum, int totalPages) throws IOException {
-        // Page number (centered, top of footer area)
-        String pageText = "Page " + pageNum + " of " + totalPages;
+        // 1. Page number (centered, top of footer area) in '1 of 10' format
+        String pageText = pageNum + " of " + totalPages;
         PDType1Font font = PDType1Font.HELVETICA;
-        int fontSize = 12;
+        int fontSize = 14;
         float textWidth = font.getStringWidth(pageText) / 1000 * fontSize;
         float x = (PAGE_WIDTH - textWidth) / 2;
         float y = 90; // Top of footer area
@@ -899,40 +895,49 @@ public class PdfGenerator {
         cs.showText(pageText);
         cs.endText();
 
-        // Signature image (centered below page number)
-        // Load signature.png from drawable
+        // 2. Horizontal line (below page number)
+        float lineY = y - 22;
+        cs.setStrokingColor(224f/255, 224f/255, 224f/255); // #e0e0e0
+        cs.moveTo(MARGIN, lineY);
+        cs.lineTo(PAGE_WIDTH - MARGIN, lineY);
+        cs.stroke();
+        cs.setStrokingColor(0, 0, 0); // Reset to black
+
+        // 3. Signature image (centered below line)
         android.graphics.Bitmap signatureBitmap = null;
-        int sigResId = context.getResources().getIdentifier("signature", "drawable", context.getPackageName());
-        if (sigResId != 0) {
-            signatureBitmap = android.graphics.BitmapFactory.decodeResource(context.getResources(), sigResId);
+        // Try loading from assets first
+        try {
+            java.io.InputStream is = context.getAssets().open("signature.png");
+            signatureBitmap = android.graphics.BitmapFactory.decodeStream(is);
+            is.close();
+        } catch (Exception e) {
+            signatureBitmap = null;
+        }
+        // If not found in assets, try drawable
+        if (signatureBitmap == null) {
+            int sigResId = context.getResources().getIdentifier("signature", "drawable", context.getPackageName());
+            if (sigResId != 0) {
+                signatureBitmap = android.graphics.BitmapFactory.decodeResource(context.getResources(), sigResId);
+            }
         }
         if (signatureBitmap != null) {
             com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject sigImage = com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory.createFromImage(document, signatureBitmap);
             float sigWidth = 90f;
             float sigHeight = signatureBitmap.getHeight() * (sigWidth / signatureBitmap.getWidth());
             float sigX = (PAGE_WIDTH - sigWidth) / 2;
-            float sigY = y - 32 - sigHeight / 2;
+            float sigY = lineY - sigHeight - 8;
             cs.drawImage(sigImage, sigX, sigY, sigWidth, sigHeight);
+            // 4. Developer credit (centered, below signature image)
+            String credit = "Developed by Mushfiquzzaman Liyon";
+            int creditFontSize = 16;
+            float creditWidth = font.getStringWidth(credit) / 1000 * creditFontSize;
+            float creditX = (PAGE_WIDTH - creditWidth) / 2;
+            float creditY = sigY - 18;
+            cs.setFont(font, creditFontSize);
+            cs.beginText();
+            cs.newLineAtOffset(creditX, creditY);
+            cs.showText(credit);
+            cs.endText();
         }
-
-        // Developer credit (centered, below signature image)
-        String credit = "Developed by Mushfiquzzaman Liyon";
-        int creditFontSize = 16;
-        float creditWidth = font.getStringWidth(credit) / 1000 * creditFontSize;
-        float creditX = (PAGE_WIDTH - creditWidth) / 2;
-        float creditY = y - 70;
-        cs.setFont(font, creditFontSize);
-        cs.beginText();
-        cs.newLineAtOffset(creditX, creditY);
-        cs.showText(credit);
-        cs.endText();
-
-        // Horizontal line at the very bottom
-        float lineY = 40;
-        cs.setStrokingColor(224f/255, 224f/255, 224f/255); // #e0e0e0
-        cs.moveTo(MARGIN, lineY);
-        cs.lineTo(PAGE_WIDTH - MARGIN, lineY);
-        cs.stroke();
-        cs.setStrokingColor(0, 0, 0); // Reset to black
     }
 } 
