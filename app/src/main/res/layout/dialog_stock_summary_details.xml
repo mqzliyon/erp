@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stock Summary Details"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Product Type -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Product Type:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_product_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Polo"
+                android:textSize="16sp"
+                android:textColor="@color/primary_color"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Date -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Date:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="01/01/2025"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Office -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Office:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_office"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rongdhonu"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Opening Stock -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Opening Stock:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_opening_stock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="100 Pcs"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Receipt from Factory -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Receipt from Factory:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_receipt_factory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="50 Pcs"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Return Product -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Return Product:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_return_product"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10 Pcs"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Today Sale Quantity -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Today Sale Quantity:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_today_sale"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="30 Pcs"
+                android:textSize="16sp"
+                android:textColor="#666666" />
+        </LinearLayout>
+
+        <!-- Closing Stock -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Closing Stock:"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#231F20"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/text_closing_stock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="130 Pcs"
+                android:textSize="16sp"
+                android:textColor="@color/primary_color"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btn_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Close"
+                style="@style/Widget.Material3.Button" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView> 

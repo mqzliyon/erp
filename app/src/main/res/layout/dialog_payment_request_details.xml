@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Payment Request Details"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#231F20"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Payment Method -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Payment Method:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_payment_method"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="16sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <!-- Invoice Number -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Invoice Number:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_invoice_number"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="16sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <!-- Amount -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Amount:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_amount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="16sp"
+            android:textColor="@color/primary_color"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Date -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="16sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <!-- Time -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="16sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <!-- Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/text_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_chip_date"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp" />
+
+    </LinearLayout>
+
+    <!-- Close Button -->
+    <Button
+        android:id="@+id/btn_close"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Close"
+        android:textColor="@color/white"
+        android:background="@drawable/bg_rounded_button"
+        android:padding="12dp" />
+
+</LinearLayout> 

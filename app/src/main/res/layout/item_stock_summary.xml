@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
+
+        <!-- Icon -->
+        <ImageView
+            android:id="@+id/image_icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_fabric"
+            android:background="@drawable/bg_avatar_circle"
+            android:scaleType="centerCrop"
+            android:contentDescription="Product Icon"
+            android:layout_marginEnd="10dp"/>
+
+        <!-- Main content: Title, date, type -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stock Summary"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@color/purple_700" />
+
+            <TextView
+                android:id="@+id/text_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="01/01/2025"
+                android:textColor="#888888"
+                android:textSize="11sp"
+                android:layout_marginTop="1dp"/>
+
+            <TextView
+                android:id="@+id/text_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Polo"
+                android:textColor="@color/primary_color"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginTop="1dp"/>
+
+            <TextView
+                android:id="@+id/text_office"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rongdhonu"
+                android:textColor="#666666"
+                android:textSize="11sp"
+                android:layout_marginTop="1dp"/>
+        </LinearLayout>
+
+        <!-- Actions: Menu -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/button_menu"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="@android:color/transparent"
+                android:src="@drawable/ic_more_vert"
+                android:contentDescription="Menu"
+                android:tint="@color/purple_700"
+                android:padding="2dp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView> 

@@ -7,6 +7,8 @@ import androidx.annotation.NonNull;
 import com.dazzling.erp.models.Cutting;
 import com.dazzling.erp.models.Fabric;
 import com.dazzling.erp.models.Lot;
+import com.dazzling.erp.models.StockSummary;
+import com.dazzling.erp.models.PaymentRequest;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -35,6 +37,8 @@ public class FirestoreService {
     private static final String COLLECTION_CUTTING = "cutting";
     private static final String COLLECTION_LOTS = "lots";
     private static final String COLLECTION_USERS = "users";
+    private static final String COLLECTION_STOCK_SUMMARIES = "stock_summaries";
+    private static final String COLLECTION_PAYMENT_REQUESTS = "payment_requests";
     
     public FirestoreService() {
         mFirestore = FirebaseFirestore.getInstance();
@@ -902,5 +906,315 @@ public class FirestoreService {
             Log.e(TAG, "❌ Comprehensive lot data verification failed: " + integrityErrorMessage);
             if (onError != null) onError.run();
         }
+    }
+    
+    // ==================== STOCK SUMMARY OPERATIONS ====================
+    
+    public interface StockSummaryCallback {
+        void onStockSummariesLoaded(List<StockSummary> stockSummaries);
+        void onStockSummaryAdded(StockSummary stockSummary);
+        void onStockSummaryUpdated(StockSummary stockSummary);
+        void onStockSummaryDeleted(String stockSummaryId);
+        void onError(String error);
+    }
+    
+    /**
+     * Add new stock summary
+     */
+    public void addStockSummary(StockSummary stockSummary, StockSummaryCallback callback) {
+        stockSummary.setCreatedAt(System.currentTimeMillis());
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES)
+                .add(stockSummary)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        stockSummary.setId(documentReference.getId());
+                        Log.d(TAG, "Stock summary added with ID: " + documentReference.getId());
+                        if (callback != null) {
+                            callback.onStockSummaryAdded(stockSummary);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding stock summary", e);
+                        if (callback != null) {
+                            callback.onError("Failed to add stock summary: " + e.getMessage());
+                        }
+                    }
+                });
+    }
+    
+    /**
+     * Get all stock summaries with real-time updates
+     */
+    public void getStockSummaries(StockSummaryCallback callback) {
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.w(TAG, "Error getting stock summaries", error);
+                        if (callback != null) {
+                            callback.onError("Failed to load stock summaries: " + error.getMessage());
+                        }
+                        return;
+                    }
+                    
+                    List<StockSummary> stockSummaries = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot document : value) {
+                            try {
+                                StockSummary stockSummary = document.toObject(StockSummary.class);
+                                if (stockSummary != null) {
+                                    stockSummary.setId(document.getId());
+                                    stockSummaries.add(stockSummary);
+                                }
+                            } catch (Exception e) {
+                                Log.w(TAG, "Error parsing document: " + document.getId(), e);
+                            }
+                        }
+                    }
+                    
+                    // Sort by createdAt in descending order
+                    stockSummaries.sort((a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
+                    
+                    if (callback != null) {
+                        callback.onStockSummariesLoaded(stockSummaries);
+                    }
+                });
+    }
+    
+    /**
+     * Get stock summaries by office with real-time updates
+     */
+    public void getStockSummariesByOffice(String office, StockSummaryCallback callback) {
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES)
+                .whereEqualTo("office", office)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.w(TAG, "Error getting stock summaries for office: " + office, error);
+                        if (callback != null) {
+                            callback.onError("Failed to load stock summaries: " + error.getMessage());
+                        }
+                        return;
+                    }
+                    
+                    List<StockSummary> stockSummaries = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot document : value) {
+                            try {
+                                StockSummary stockSummary = document.toObject(StockSummary.class);
+                                if (stockSummary != null) {
+                                    stockSummary.setId(document.getId());
+                                    // Ensure office field is set
+                                    if (stockSummary.getOffice() == null) {
+                                        stockSummary.setOffice(office);
+                                    }
+                                    stockSummaries.add(stockSummary);
+                                }
+                            } catch (Exception e) {
+                                Log.w(TAG, "Error parsing document: " + document.getId(), e);
+                            }
+                        }
+                    }
+                    
+                    // Sort by createdAt in descending order
+                    stockSummaries.sort((a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
+                    
+                    if (callback != null) {
+                        callback.onStockSummariesLoaded(stockSummaries);
+                    }
+                });
+    }
+    
+    /**
+     * Get stock summaries by product type
+     */
+    public void getStockSummariesByProductType(String productType, StockSummaryCallback callback) {
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES)
+                .whereEqualTo("productType", productType)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.w(TAG, "Error getting stock summaries by product type", error);
+                        if (callback != null) {
+                            callback.onError("Failed to load stock summaries: " + error.getMessage());
+                        }
+                        return;
+                    }
+                    
+                    List<StockSummary> stockSummaries = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot document : value) {
+                            StockSummary stockSummary = document.toObject(StockSummary.class);
+                            if (stockSummary != null) {
+                                stockSummary.setId(document.getId());
+                                stockSummaries.add(stockSummary);
+                            }
+                        }
+                    }
+                    
+                    if (callback != null) {
+                        callback.onStockSummariesLoaded(stockSummaries);
+                    }
+                });
+    }
+    
+    /**
+     * Update stock summary
+     */
+    public void updateStockSummary(StockSummary stockSummary, StockSummaryCallback callback) {
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES).document(stockSummary.getId())
+                .set(stockSummary)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d(TAG, "Stock summary updated successfully");
+                        if (callback != null) {
+                            callback.onStockSummaryUpdated(stockSummary);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error updating stock summary", e);
+                        if (callback != null) {
+                            callback.onError("Failed to update stock summary: " + e.getMessage());
+                        }
+                    }
+                });
+    }
+    
+    /**
+     * Delete stock summary
+     */
+    public void deleteStockSummary(String stockSummaryId, StockSummaryCallback callback) {
+        mFirestore.collection(COLLECTION_STOCK_SUMMARIES).document(stockSummaryId)
+                .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d(TAG, "Stock summary deleted successfully");
+                        if (callback != null) {
+                            callback.onStockSummaryDeleted(stockSummaryId);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error deleting stock summary", e);
+                        if (callback != null) {
+                            callback.onError("Failed to delete stock summary: " + e.getMessage());
+                        }
+                    }
+                });
+    }
+    
+    // ==================== PAYMENT REQUEST OPERATIONS ====================
+    
+    public interface PaymentRequestCallback {
+        void onPaymentRequestsLoaded(List<PaymentRequest> paymentRequests);
+        void onPaymentRequestAdded(PaymentRequest paymentRequest);
+        void onPaymentRequestUpdated(PaymentRequest paymentRequest);
+        void onPaymentRequestDeleted(String paymentRequestId);
+        void onError(String error);
+    }
+    
+    /**
+     * Add new payment request
+     */
+    public void addPaymentRequest(PaymentRequest paymentRequest, PaymentRequestCallback callback) {
+        mFirestore.collection(COLLECTION_PAYMENT_REQUESTS)
+                .add(paymentRequest)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        paymentRequest.setId(documentReference.getId());
+                        Log.d(TAG, "Payment request added with ID: " + documentReference.getId());
+                        if (callback != null) {
+                            callback.onPaymentRequestAdded(paymentRequest);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding payment request", e);
+                        if (callback != null) {
+                            callback.onError("Failed to add payment request: " + e.getMessage());
+                        }
+                    }
+                });
+    }
+    
+    /**
+     * Get payment requests by office with real-time updates
+     */
+    public void getPaymentRequestsByOffice(String office, PaymentRequestCallback callback) {
+        mFirestore.collection(COLLECTION_PAYMENT_REQUESTS)
+                .whereEqualTo("office", office)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.w(TAG, "Error getting payment requests for office: " + office, error);
+                        if (callback != null) {
+                            callback.onError("Failed to load payment requests: " + error.getMessage());
+                        }
+                        return;
+                    }
+                    
+                    List<PaymentRequest> paymentRequests = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot document : value) {
+                            try {
+                                PaymentRequest paymentRequest = document.toObject(PaymentRequest.class);
+                                if (paymentRequest != null) {
+                                    paymentRequest.setId(document.getId());
+                                    // Ensure office field is set
+                                    if (paymentRequest.getOffice() == null) {
+                                        paymentRequest.setOffice(office);
+                                    }
+                                    paymentRequests.add(paymentRequest);
+                                }
+                            } catch (Exception e) {
+                                Log.w(TAG, "Error parsing document: " + document.getId(), e);
+                            }
+                        }
+                    }
+                    
+                    // Sort by createdAt in descending order
+                    paymentRequests.sort((a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
+                    
+                    if (callback != null) {
+                        callback.onPaymentRequestsLoaded(paymentRequests);
+                    }
+                });
+    }
+    
+    /**
+     * Delete payment request
+     */
+    public void deletePaymentRequest(String paymentRequestId, PaymentRequestCallback callback) {
+        mFirestore.collection(COLLECTION_PAYMENT_REQUESTS).document(paymentRequestId)
+                .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d(TAG, "Payment request deleted successfully");
+                        if (callback != null) {
+                            callback.onPaymentRequestDeleted(paymentRequestId);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error deleting payment request", e);
+                        if (callback != null) {
+                            callback.onError("Failed to delete payment request: " + e.getMessage());
+                        }
+                    }
+                });
     }
 } 

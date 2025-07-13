@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stock Summary"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#231F20"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Required field note -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="* Required fields"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Types of Product Spinner -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Types of Product"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <Spinner
+            android:id="@+id/spinner_product_type"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp" />
+
+        <!-- Office -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Office"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_office"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Office location"
+            android:inputType="none"
+            android:focusable="false"
+            android:clickable="false"
+            android:background="@drawable/bg_edittext_disabled"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="#666666" />
+
+        <!-- Opening Stock -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Opening Stock (Pcs) *"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_opening_stock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter opening stock (Pcs) *"
+            android:inputType="number"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Receipt from Factory -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Receipt from Factory (Pcs)"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_receipt_factory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter receipt from factory (Pcs)"
+            android:inputType="number"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Return Product -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Return Product (Pcs)"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_return_product"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter return product quantity (Pcs)"
+            android:inputType="number"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Today Sale Quantity -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Today Sale Quantity (Pcs)"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_today_sale"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter today sale quantity (Pcs)"
+            android:inputType="number"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Closing Stock -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Closing Stock (Pcs)"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_closing_stock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Auto-calculated"
+            android:inputType="none"
+            android:focusable="false"
+            android:clickable="false"
+            android:background="@drawable/bg_edittext_disabled"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="#666666" />
+
+        <!-- Date Picker -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Date *"
+            android:textSize="16sp"
+            android:textColor="#231F20"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Select date"
+            android:inputType="none"
+            android:focusable="false"
+            android:background="@drawable/bg_edittext_focused_selector"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btn_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancel"
+                android:layout_marginEnd="8dp"
+                style="@style/Widget.Material3.Button.TextButton" />
+
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Save"
+                style="@style/Widget.Material3.Button" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView> 
