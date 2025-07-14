@@ -1193,6 +1193,41 @@ public class FirestoreService {
     }
     
     /**
+     * Get all payment requests (for CEO analytics)
+     */
+    public void getAllPaymentRequests(PaymentRequestCallback callback) {
+        mFirestore.collection(COLLECTION_PAYMENT_REQUESTS)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.w(TAG, "Error getting all payment requests", error);
+                        if (callback != null) {
+                            callback.onError("Failed to load payment requests: " + error.getMessage());
+                        }
+                        return;
+                    }
+                    List<PaymentRequest> paymentRequests = new ArrayList<>();
+                    if (value != null) {
+                        for (QueryDocumentSnapshot document : value) {
+                            try {
+                                PaymentRequest paymentRequest = document.toObject(PaymentRequest.class);
+                                if (paymentRequest != null) {
+                                    paymentRequest.setId(document.getId());
+                                    paymentRequests.add(paymentRequest);
+                                }
+                            } catch (Exception e) {
+                                Log.w(TAG, "Error parsing document: " + document.getId(), e);
+                            }
+                        }
+                    }
+                    // Sort by createdAt in descending order
+                    paymentRequests.sort((a, b) -> Long.compare(b.getCreatedAt(), a.getCreatedAt()));
+                    if (callback != null) {
+                        callback.onPaymentRequestsLoaded(paymentRequests);
+                    }
+                });
+    }
+    
+    /**
      * Update payment request
      */
     public void updatePaymentRequest(PaymentRequest paymentRequest, PaymentRequestCallback callback) {

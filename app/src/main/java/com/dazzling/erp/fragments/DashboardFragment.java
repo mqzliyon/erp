@@ -19,6 +19,7 @@ import com.dazzling.erp.databinding.FragmentDashboardBinding;
 import com.dazzling.erp.models.Cutting;
 import com.dazzling.erp.models.Fabric;
 import com.dazzling.erp.models.Lot;
+import com.dazzling.erp.models.PaymentRequest;
 import com.dazzling.erp.services.FirestoreService;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -40,6 +41,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.utils.ColorTemplate;
 
 /**
  * Dashboard Fragment with date-filterable charts and summary cards
@@ -55,6 +58,7 @@ public class DashboardFragment extends Fragment implements
     private List<Fabric> fabrics = new ArrayList<>();
     private List<Cutting> cuttings = new ArrayList<>();
     private List<Lot> lots = new ArrayList<>();
+    private List<PaymentRequest> paymentRequests = new ArrayList<>();
     
     private Date startDate;
     private Date endDate;
@@ -80,8 +84,8 @@ public class DashboardFragment extends Fragment implements
         startDate = calendar.getTime();
         
         setupViews();
-        setupCharts();
         loadData();
+        loadPaymentRequestAnalytics();
     }
     
     @Override
@@ -107,35 +111,21 @@ public class DashboardFragment extends Fragment implements
         binding.cardFabrics.setOnClickListener(v -> showFabricsDetails());
         binding.cardCutting.setOnClickListener(v -> showCuttingDetails());
         binding.cardLots.setOnClickListener(v -> showLotsDetails());
-    }
-    
-    /**
-     * Setup charts
-     */
-    private void setupCharts() {
-        // Fabric Chart
-        binding.chartFabrics.getDescription().setEnabled(false);
-        binding.chartFabrics.setDrawGridBackground(false);
-        binding.chartFabrics.setDrawBarShadow(false);
-        binding.chartFabrics.setHighlightFullBarEnabled(false);
-        
-        XAxis xAxis = binding.chartFabrics.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setDrawGridLines(false);
-        
-        binding.chartFabrics.getAxisLeft().setDrawGridLines(false);
-        binding.chartFabrics.getAxisRight().setEnabled(false);
-        binding.chartFabrics.getLegend().setEnabled(false);
-        
-        // Lot Status Chart
-        binding.chartLotStatus.getDescription().setEnabled(false);
-        binding.chartLotStatus.setHoleRadius(35f);
-        binding.chartLotStatus.setTransparentCircleRadius(40f);
-        binding.chartLotStatus.setDrawHoleEnabled(true);
-        binding.chartLotStatus.setRotationAngle(0);
-        binding.chartLotStatus.setRotationEnabled(true);
-        binding.chartLotStatus.setHighlightPerTapEnabled(true);
-        binding.chartLotStatus.getLegend().setEnabled(true);
+        // Payment Request Analytics card click listener
+        binding.cardPaymentAnalytics.setOnClickListener(v -> {
+            if (getActivity() instanceof com.dazzling.erp.MainActivity) {
+                com.dazzling.erp.MainActivity mainActivity = (com.dazzling.erp.MainActivity) getActivity();
+                com.dazzling.erp.models.User user = mainActivity.getCurrentUser();
+                if (user != null && "CEO".equals(user.getRole())) {
+                    // CEO: open CeoPaymentRequestActivity
+                    android.content.Intent intent = new android.content.Intent(getContext(), com.dazzling.erp.ui.ceo.CeoPaymentRequestActivity.class);
+                    startActivity(intent);
+                } else if (user != null && "Manager".equals(user.getRole())) {
+                    // Manager: navigate to ManagerPaymentFragment
+                    mainActivity.navigateToFragment("manager_payment");
+                }
+            }
+        });
     }
     
     /**
@@ -228,10 +218,6 @@ public class DashboardFragment extends Fragment implements
             binding.tvCuttingTotal.setText(String.format(Locale.getDefault(), "%.1f KG", totalCuttingKg));
         }
         binding.tvLotsTotal.setText(String.valueOf(totalLots));
-        
-        // Update charts
-        updateFabricChart(filteredFabrics);
-        updateLotStatusChart(filteredLots);
     }
     
     /**
@@ -243,64 +229,55 @@ public class DashboardFragment extends Fragment implements
     }
     
     /**
-     * Update fabric chart
+     * Load payment request analytics
      */
-    private void updateFabricChart(List<Fabric> fabrics) {
-        if (binding == null) return;
-
-        // Group fabrics by type and sum their quantities
-        Map<String, Float> typeTotals = new LinkedHashMap<>();
-        for (Fabric fabric : fabrics) {
-            String type = fabric.getFabricType() != null ? fabric.getFabricType() : "Unknown";
-            float qty = (float) fabric.getQuantityKg();
-            typeTotals.put(type, typeTotals.getOrDefault(type, 0f) + qty);
-        }
-
-        List<BarEntry> entries = new ArrayList<>();
-        List<String> labels = new ArrayList<>();
-        int index = 0;
-        for (Map.Entry<String, Float> entry : typeTotals.entrySet()) {
-            entries.add(new BarEntry(index, entry.getValue()));
-            labels.add(entry.getKey());
-            index++;
-        }
-
-        BarDataSet dataSet = new BarDataSet(entries, "Fabric Types");
-        // Use a default color set, or you can customize as needed
-        dataSet.setColors(Color.rgb(64, 89, 128), Color.rgb(149, 165, 124), Color.rgb(217, 184, 162));
-        BarData barData = new BarData(dataSet);
-        binding.chartFabrics.setData(barData);
-
-        XAxis xAxis = binding.chartFabrics.getXAxis();
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
-
-        binding.chartFabrics.invalidate();
+    private void loadPaymentRequestAnalytics() {
+        // For CEO, fetch all payment requests
+        firestoreService.getAllPaymentRequests(new FirestoreService.PaymentRequestCallback() {
+            @Override
+            public void onPaymentRequestsLoaded(List<PaymentRequest> requests) {
+                paymentRequests = requests;
+                updatePaymentAnalytics();
+            }
+            @Override public void onPaymentRequestAdded(PaymentRequest paymentRequest) {}
+            @Override public void onPaymentRequestUpdated(PaymentRequest paymentRequest) {}
+            @Override public void onPaymentRequestDeleted(String paymentRequestId) {}
+            @Override public void onError(String error) {
+                if (binding != null) binding.tvPaymentAnalytics.setText("Error loading analytics");
+            }
+        });
     }
-    
-    /**
-     * Update lot status chart
-     */
-    private void updateLotStatusChart(List<Lot> lots) {
+
+    private void updatePaymentAnalytics() {
         if (binding == null) return;
-        
-        List<PieEntry> entries = new ArrayList<>();
-        
-        long activeLots = lots.stream().filter(Lot::isActive).count();
-        long completedLots = lots.stream().filter(Lot::isCompleted).count();
-        
-        entries.add(new PieEntry(activeLots, "Active"));
-        entries.add(new PieEntry(completedLots, "Completed"));
-        
-        PieDataSet dataSet = new PieDataSet(entries, "Lot Status");
-        dataSet.setColors(Color.rgb(64, 89, 128), Color.rgb(149, 165, 124));
-        dataSet.setValueTextSize(12f);
-        dataSet.setValueTextColor(Color.WHITE);
-        
-        PieData pieData = new PieData(dataSet);
-        pieData.setValueFormatter(new PercentFormatter(binding.chartLotStatus));
-        binding.chartLotStatus.setData(pieData);
-        
-        binding.chartLotStatus.invalidate();
+        int total = paymentRequests.size();
+        int pending = 0, approved = 0, rejected = 0;
+        for (PaymentRequest req : paymentRequests) {
+            if ("Pending".equalsIgnoreCase(req.getStatus())) pending++;
+            else if ("Approved".equalsIgnoreCase(req.getStatus())) approved++;
+            else if ("Rejected".equalsIgnoreCase(req.getStatus())) rejected++;
+        }
+        String analytics = "Total: " + total + "\nPending: " + pending + "\nApproved: " + approved + "\nRejected: " + rejected;
+        binding.tvPaymentAnalytics.setText(analytics);
+
+        // Update PieChart
+        PieChart pieChart = binding.chartPaymentRequests;
+        ArrayList<PieEntry> entries = new ArrayList<>();
+        if (pending > 0) entries.add(new PieEntry(pending, "Pending"));
+        if (approved > 0) entries.add(new PieEntry(approved, "Approved"));
+        if (rejected > 0) entries.add(new PieEntry(rejected, "Rejected"));
+        PieDataSet dataSet = new PieDataSet(entries, "Payment Requests");
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setValueTextSize(14f);
+        PieData data = new PieData(dataSet);
+        pieChart.setData(data);
+        pieChart.getDescription().setEnabled(false);
+        pieChart.setUsePercentValues(true);
+        pieChart.setEntryLabelTextSize(14f);
+        pieChart.setCenterText("Status");
+        pieChart.setCenterTextSize(16f);
+        pieChart.getLegend().setEnabled(true);
+        pieChart.invalidate();
     }
     
     /**
