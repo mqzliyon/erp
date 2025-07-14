@@ -27,26 +27,32 @@ public class BackgroundService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "BackgroundService created");
-        createNotificationChannel();
+        try {
+            Log.d(TAG, "BackgroundService created");
+            createNotificationChannel();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onCreate", e);
+        }
     }
     
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "BackgroundService started");
-        
-        // Create notification for foreground service
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("ERP System")
-                .setContentText("Running in background")
-                .setSmallIcon(R.drawable.ic_dashboard)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setOngoing(true)
-                .build();
-        
-        // Start foreground service
-        startForeground(NOTIFICATION_ID, notification);
-        
+        try {
+            Log.d(TAG, "BackgroundService started");
+            // Create notification for foreground service
+            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("ERP System")
+                    .setContentText("Running in background")
+                    .setSmallIcon(R.drawable.ic_dashboard)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setOngoing(true)
+                    .build();
+            // Start foreground service
+            startForeground(NOTIFICATION_ID, notification);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onStartCommand", e);
+            stopSelf();
+        }
         // Return START_STICKY to restart service if killed
         return START_STICKY;
     }

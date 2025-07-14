@@ -89,13 +89,22 @@
             android:exported="false"
             android:theme="@style/Theme.ERP"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.ceo.CeoUttaraOfficeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ERP"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.ceo.CeoPaymentRequestActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ERP"
+            android:screenOrientation="portrait" />
             
         <!-- Service for background operations -->
         <service
             android:name=".services.BackgroundService"
             android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:exported="false" />
             
         <!-- Receiver for handling system events -->
         <receiver

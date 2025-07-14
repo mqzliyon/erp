@@ -182,14 +182,42 @@
 
     </LinearLayout>
 
-    <!-- Close Button -->
+    <!-- Add Approve and Reject buttons side by side at the bottom -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="16dp">
+        <Button
+            android:id="@+id/btn_approve"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Approve"
+            android:backgroundTint="@color/primary_color"
+            android:textColor="@color/white" />
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="wrap_content" />
+        <Button
+            android:id="@+id/btn_reject"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Reject"
+            android:backgroundTint="@color/error_color"
+            android:textColor="@color/white" />
+    </LinearLayout>
+
+    <!-- Close Button at the very bottom -->
     <Button
         android:id="@+id/btn_close"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Close"
+        android:backgroundTint="@color/gray"
         android:textColor="@color/white"
-        android:background="@drawable/bg_rounded_button"
-        android:padding="12dp" />
+        android:layout_marginTop="16dp"/>
 
 </LinearLayout> 

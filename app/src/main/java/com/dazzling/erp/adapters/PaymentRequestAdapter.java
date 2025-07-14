@@ -80,18 +80,18 @@ public class PaymentRequestAdapter extends RecyclerView.Adapter<PaymentRequestAd
         
         // Set status background color and text color based on status
         if ("Pending".equals(paymentRequest.getStatus())) {
-            holder.textStatus.setBackgroundColor(0xFFFACC15); // #FACC15 yellow
-            holder.textStatus.setTextColor(0xFF000000); // Black text
+            holder.textStatus.setBackgroundResource(R.drawable.bg_chip_date); // yellow chip
+            holder.textStatus.setTextColor(context.getResources().getColor(R.color.white));
         } else if ("Approved".equals(paymentRequest.getStatus())) {
-            holder.textStatus.setBackgroundResource(R.drawable.bg_chip_quantity);
+            holder.textStatus.setBackgroundColor(0xFF4CAF50); // Green
             holder.textStatus.setTextColor(0xFFFFFFFF); // White text
         } else if ("Rejected".equals(paymentRequest.getStatus())) {
-            holder.textStatus.setBackgroundResource(R.drawable.bg_notification_dot);
-            holder.textStatus.setTextColor(0xFFFFFFFF); // White text
+            holder.textStatus.setBackgroundResource(R.drawable.bg_chip_reject); // red chip
+            holder.textStatus.setTextColor(context.getResources().getColor(R.color.white));
         } else {
             // Default styling for other statuses
             holder.textStatus.setBackgroundResource(R.drawable.bg_chip_date);
-            holder.textStatus.setTextColor(0xFFFFFFFF); // White text
+            holder.textStatus.setTextColor(context.getResources().getColor(R.color.white));
         }
         
         // Set click listeners

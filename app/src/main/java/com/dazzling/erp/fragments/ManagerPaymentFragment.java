@@ -376,6 +376,11 @@ public class ManagerPaymentFragment extends Fragment {
         TextView textTime = dialogView.findViewById(R.id.text_time);
         TextView textStatus = dialogView.findViewById(R.id.text_status);
         Button btnClose = dialogView.findViewById(R.id.btn_close);
+        Button btnApprove = dialogView.findViewById(R.id.btn_approve);
+        Button btnReject = dialogView.findViewById(R.id.btn_reject);
+        // Hide Approve/Reject for Manager
+        btnApprove.setVisibility(View.GONE);
+        btnReject.setVisibility(View.GONE);
         
         textPaymentMethod.setText(paymentRequest.getPaymentMethod());
         textInvoiceNumber.setText(paymentRequest.getInvoiceNumber());
@@ -390,18 +395,18 @@ public class ManagerPaymentFragment extends Fragment {
         
         // Set status background color and text color based on status
         if ("Pending".equals(paymentRequest.getStatus())) {
-            textStatus.setBackgroundColor(0xFFFACC15); // #FACC15 yellow
-            textStatus.setTextColor(0xFF000000); // Black text
+            textStatus.setBackgroundResource(R.drawable.bg_chip_date); // yellow chip
+            textStatus.setTextColor(getResources().getColor(R.color.white));
         } else if ("Approved".equals(paymentRequest.getStatus())) {
-            textStatus.setBackgroundResource(R.drawable.bg_chip_quantity);
-            textStatus.setTextColor(0xFFFFFFFF); // White text
+            textStatus.setBackgroundColor(0xFF4CAF50); // Green
+            textStatus.setTextColor(getResources().getColor(R.color.white));
         } else if ("Rejected".equals(paymentRequest.getStatus())) {
-            textStatus.setBackgroundResource(R.drawable.bg_notification_dot);
-            textStatus.setTextColor(0xFFFFFFFF); // White text
+            textStatus.setBackgroundResource(R.drawable.bg_chip_reject); // red chip
+            textStatus.setTextColor(getResources().getColor(R.color.white));
         } else {
             // Default styling for other statuses
             textStatus.setBackgroundResource(R.drawable.bg_chip_date);
-            textStatus.setTextColor(0xFFFFFFFF); // White text
+            textStatus.setTextColor(getResources().getColor(R.color.white));
         }
         
         AlertDialog dialog = builder.setView(dialogView).create();

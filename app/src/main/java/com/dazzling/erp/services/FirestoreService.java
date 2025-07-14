@@ -1193,6 +1193,32 @@ public class FirestoreService {
     }
     
     /**
+     * Update payment request
+     */
+    public void updatePaymentRequest(PaymentRequest paymentRequest, PaymentRequestCallback callback) {
+        mFirestore.collection(COLLECTION_PAYMENT_REQUESTS).document(paymentRequest.getId())
+                .set(paymentRequest)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d(TAG, "Payment request updated successfully");
+                        if (callback != null) {
+                            callback.onPaymentRequestUpdated(paymentRequest);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error updating payment request", e);
+                        if (callback != null) {
+                            callback.onError("Failed to update payment request: " + e.getMessage());
+                        }
+                    }
+                });
+    }
+    
+    /**
      * Delete payment request
      */
     public void deletePaymentRequest(String paymentRequestId, PaymentRequestCallback callback) {

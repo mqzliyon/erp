@@ -128,13 +128,15 @@ public class MainActivity extends AppCompatActivity implements
                         drawerLayout.closeDrawer(GravityCompat.START);
                         return true;
                     } else if (id == R.id.nav_uttara_office) {
-                        // Handle Uttara Office selection
-                        showSnackbar("Uttara Office selected");
+                        // Navigate to CEO Uttara Office Activity
+                        Intent intent = new Intent(this, com.dazzling.erp.ui.ceo.CeoUttaraOfficeActivity.class);
+                        startActivity(intent);
                         drawerLayout.closeDrawer(GravityCompat.START);
                         return true;
                     } else if (id == R.id.nav_payment_request) {
-                        // Handle Payment Request selection
-                        showSnackbar("Payment Request selected");
+                        // Navigate to CEO Payment Request Activity
+                        Intent intent = new Intent(this, com.dazzling.erp.ui.ceo.CeoPaymentRequestActivity.class);
+                        startActivity(intent);
                         drawerLayout.closeDrawer(GravityCompat.START);
                         return true;
                     }
