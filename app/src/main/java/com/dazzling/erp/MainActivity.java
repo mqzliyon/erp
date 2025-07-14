@@ -45,6 +45,10 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.core.view.GravityCompat;
 
 import com.google.firebase.auth.FirebaseUser;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * Main Activity for the ERP application
@@ -69,6 +73,13 @@ public class MainActivity extends AppCompatActivity implements
         // Force light mode
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
+        
+        // Request notification permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
         
         try {
             // Suppress verbose logging first
@@ -185,6 +196,20 @@ public class MainActivity extends AppCompatActivity implements
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
             finish();
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 101) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted
+                Log.d(TAG, "Notification permission granted");
+            } else {
+                // Permission denied
+                Toast.makeText(this, "Notification permission denied. You may not receive important alerts.", Toast.LENGTH_LONG).show();
+            }
         }
     }
     
@@ -583,6 +608,12 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "onAuthSuccess: User authenticated successfully");
         this.currentUser = user;
         
+        // Request notification permission for Manager role on Android 13+
+        if (user != null && "Manager".equals(user.getRole()) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
         try {
             // Hide loading indicator
             showGlobalLoader(false);

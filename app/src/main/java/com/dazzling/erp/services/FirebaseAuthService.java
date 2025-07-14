@@ -16,6 +16,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 /**
  * Firebase Authentication Service for handling user authentication and management
@@ -54,6 +55,15 @@ public class FirebaseAuthService {
                         if (task.isSuccessful()) {
                             FirebaseUser firebaseUser = mAuth.getCurrentUser();
                             if (firebaseUser != null) {
+                                // Save FCM token
+                                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(tokenTask -> {
+                                    if (tokenTask.isSuccessful()) {
+                                        String token = tokenTask.getResult();
+                                        FirebaseFirestore.getInstance().collection("users")
+                                            .document(firebaseUser.getUid())
+                                            .update("fcmToken", token);
+                                    }
+                                });
                                 fetchUserData(firebaseUser.getUid());
                             }
                         } else {
@@ -79,6 +89,15 @@ public class FirebaseAuthService {
                         if (task.isSuccessful()) {
                             FirebaseUser firebaseUser = mAuth.getCurrentUser();
                             if (firebaseUser != null) {
+                                // Save FCM token
+                                FirebaseMessaging.getInstance().getToken().addOnCompleteListener(tokenTask -> {
+                                    if (tokenTask.isSuccessful()) {
+                                        String token = tokenTask.getResult();
+                                        FirebaseFirestore.getInstance().collection("users")
+                                            .document(firebaseUser.getUid())
+                                            .update("fcmToken", token);
+                                    }
+                                });
                                 User user = new User(firebaseUser.getUid(), email, displayName, role, department);
                                 saveUserToFirestore(user);
                             }
