@@ -67,6 +67,8 @@ public class Lot {
     private Date updatedAt;
 
     private List<Transfer> factoryBalanceHistory;
+    // Embroidery Reject History
+    private List<Transfer> embroideryRejectHistory;
 
     // Required empty constructor for Firestore
     public Lot() {}
@@ -206,6 +208,10 @@ public class Lot {
 
     public List<Transfer> getFactoryBalanceHistory() { return factoryBalanceHistory; }
     public void setFactoryBalanceHistory(List<Transfer> factoryBalanceHistory) { this.factoryBalanceHistory = factoryBalanceHistory; }
+
+    // Embroidery Reject History getter and setter
+    public List<Transfer> getEmbroideryRejectHistory() { return embroideryRejectHistory; }
+    public void setEmbroideryRejectHistory(List<Transfer> embroideryRejectHistory) { this.embroideryRejectHistory = embroideryRejectHistory; }
 
     // Calculated properties
     public double getTotalFactoryBalanceKg() {

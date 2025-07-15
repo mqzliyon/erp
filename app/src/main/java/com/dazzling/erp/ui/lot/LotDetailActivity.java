@@ -1148,23 +1148,21 @@ public class LotDetailActivity extends AppCompatActivity {
         embroideryRejectBalanceText.setPadding(0, dp(16), 0, dp(16));
         vbox.addView(embroideryRejectBalanceText);
 
-        // Reject Button
-        MaterialButton rejectBtn = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        rejectBtn.setText("Mark as Rejected");
-        rejectBtn.setCornerRadius(dp(30));
-        rejectBtn.setTextSize(16);
-        rejectBtn.setElevation(dp(4));
-        rejectBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        rejectBtn.setTextColor(Color.WHITE);
-        rejectBtn.setBackgroundColor(Color.parseColor("#F44336"));
-        rejectBtn.setOnClickListener(v -> {
-            showMarkAsRejectDialog();
+        // History Button
+        MaterialButton historyBtn = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        historyBtn.setText("History");
+        historyBtn.setCornerRadius(dp(30));
+        historyBtn.setTextSize(16);
+        historyBtn.setElevation(dp(4));
+        historyBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        historyBtn.setTextColor(Color.WHITE);
+        historyBtn.setBackgroundColor(Color.parseColor("#1976D2")); // Blue color for History
+        historyBtn.setOnClickListener(v -> {
+            showEmbroideryRejectHistoryDialog();
         });
-
-        vbox.addView(rejectBtn);
+        vbox.addView(historyBtn);
 
         card.addView(vbox);
-        
         // Start chart simulation
         startEmbroideryRejectChartSimulation();
         return card;
@@ -2332,6 +2330,12 @@ public class LotDetailActivity extends AppCompatActivity {
                     // Add to embroidery reject balance
                     int currentEmbroideryReject = currentLot.getEmbroideryRejectPcs();
                     currentLot.setEmbroideryRejectPcs(currentEmbroideryReject + quantity);
+                    
+                    // Add to embroidery reject history
+                    java.util.List<com.dazzling.erp.models.Transfer> history = currentLot.getEmbroideryRejectHistory();
+                    if (history == null) history = new java.util.ArrayList<>();
+                    history.add(new com.dazzling.erp.models.Transfer(quantity, new java.util.Date(), "Embroidery → Reject on " + date));
+                    currentLot.setEmbroideryRejectHistory(history);
                     
                     // Log the changes for debugging
                     Log.d("LotDetailActivity", "Rejection processed: " + quantity + " pcs");
@@ -4088,6 +4092,31 @@ public class LotDetailActivity extends AppCompatActivity {
         }
         new androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Factory Balance History")
+            .setMessage(historyText.toString())
+            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+            .show();
+    }
+
+    // Show embroidery reject history dialog
+    private void showEmbroideryRejectHistoryDialog() {
+        if (currentLot == null || currentLot.getEmbroideryRejectHistory() == null || currentLot.getEmbroideryRejectHistory().isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Embroidery Reject History")
+                .setMessage("No history available.")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
+            return;
+        }
+        StringBuilder historyText = new StringBuilder();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault());
+        for (com.dazzling.erp.models.Transfer t : currentLot.getEmbroideryRejectHistory()) {
+            historyText.append("Date: ").append(sdf.format(t.getDate()))
+                .append("\nQty: ").append(t.getQuantity())
+                .append("\nNote: ").append(t.getNote() == null ? "" : t.getNote())
+                .append("\n\n");
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Embroidery Reject History")
             .setMessage(historyText.toString())
             .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
             .show();

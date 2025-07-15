@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -47,8 +48,13 @@ public class BackgroundService extends Service {
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setOngoing(true)
                     .build();
-            // Start foreground service
-            startForeground(NOTIFICATION_ID, notification);
+            // Start foreground service with type for Android 12+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                // 0x00000001 is the value of FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error in onStartCommand", e);
             stopSelf();

@@ -12,12 +12,7 @@
     <style name="Theme.ERP" parent="Base.Theme.ERP" />
 
 
-<!--    &lt;!&ndash; Splash screen theme &ndash;&gt;-->
-<!--    <style name="Theme.ERP.Splash" parent="Theme.SplashScreen">-->
-<!--        <item name="windowSplashScreenBackground">@color/white</item>-->
-<!--        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo.png</item>-->
-<!--        <item name="postSplashScreenTheme">@style/Theme.ERP</item>-->
-<!--    </style>-->
+
 
     <style name="Toolbar.TitleText.18sp" parent="TextAppearance.Material3.TitleMedium">
         <item name="android:textSize">18sp</item>
