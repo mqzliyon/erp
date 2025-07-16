@@ -721,10 +721,9 @@ public class PdfGenerator {
         addSectionTitleLeft("Factory Details");
         addFieldLabelValueRow("Total Balance (PCS)", String.valueOf(lot.getTotalFactoryBalancePcs()));
         addFieldLabelValueRow("A Grade Quantity (PCS)", String.valueOf(lot.getFactoryBalanceAGradePcs()));
-        // There is only one reject PCS field, so use it for both A and B Grade Rejects
-        addFieldLabelValueRow("A Grade Reject (PCS)", String.valueOf(lot.getFactoryBalanceRejectPcs()));
+        addFieldLabelValueRow("A Grade Reject (PCS)", String.valueOf(lot.getFactoryBalanceAGradeRejectPcs()));
         addFieldLabelValueRow("B Grade Quantity (PCS)", String.valueOf(lot.getFactoryBalanceBGradePcs()));
-        addFieldLabelValueRow("B Grade Reject (PCS)", String.valueOf(lot.getFactoryBalanceRejectPcs()));
+        addFieldLabelValueRow("B Grade Reject (PCS)", String.valueOf(lot.getFactoryBalanceBGradeRejectPcs()));
         // No separator after last section
 
         contentStream.close();

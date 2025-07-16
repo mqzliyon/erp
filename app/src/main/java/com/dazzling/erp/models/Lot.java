@@ -41,6 +41,9 @@ public class Lot {
     private int factoryBalanceAGradePcs;
     private int factoryBalanceBGradePcs;
     private int factoryBalanceRejectPcs;
+    // Add these two fields for separate reject tracking
+    private int factoryBalanceAGradeRejectPcs;
+    private int factoryBalanceBGradeRejectPcs;
     
     // Status tracking
     private String status; // active, completed, cancelled
@@ -160,6 +163,11 @@ public class Lot {
 
     public int getFactoryBalanceRejectPcs() { return factoryBalanceRejectPcs; }
     public void setFactoryBalanceRejectPcs(int factoryBalanceRejectPcs) { this.factoryBalanceRejectPcs = factoryBalanceRejectPcs; }
+
+    public int getFactoryBalanceAGradeRejectPcs() { return factoryBalanceAGradeRejectPcs; }
+    public void setFactoryBalanceAGradeRejectPcs(int pcs) { this.factoryBalanceAGradeRejectPcs = pcs; }
+    public int getFactoryBalanceBGradeRejectPcs() { return factoryBalanceBGradeRejectPcs; }
+    public void setFactoryBalanceBGradeRejectPcs(int pcs) { this.factoryBalanceBGradeRejectPcs = pcs; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

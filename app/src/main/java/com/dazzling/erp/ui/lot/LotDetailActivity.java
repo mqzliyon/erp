@@ -3952,9 +3952,9 @@ public class LotDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Cannot reject more than available A Grade quantity.", Toast.LENGTH_SHORT).show();
             return;
         }
-        int prevReject = currentLot.getFactoryBalanceRejectPcs();
+        int prevReject = currentLot.getFactoryBalanceAGradeRejectPcs();
         currentLot.setFactoryBalanceAGradePcs(available - quantity);
-        currentLot.setFactoryBalanceRejectPcs(prevReject + quantity);
+        currentLot.setFactoryBalanceAGradeRejectPcs(prevReject + quantity);
         // Add to history for audit
         List<com.dazzling.erp.models.Transfer> history = currentLot.getFactoryBalanceHistory();
         if (history == null) history = new java.util.ArrayList<>();
@@ -3987,7 +3987,7 @@ public class LotDetailActivity extends AppCompatActivity {
     // --- NEW: Update A Grade Reject Balance ---
     private void updateFactoryBalanceAGradeReject() {
         if (factoryBalanceAGradeRejectText != null && currentLot != null) {
-            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            int rejectPcs = currentLot.getFactoryBalanceAGradeRejectPcs();
             factoryBalanceAGradeRejectText.setText("A Grade Reject Balance: " + rejectPcs + " Pcs.");
         }
     }
@@ -3995,7 +3995,7 @@ public class LotDetailActivity extends AppCompatActivity {
     // --- NEW: Update B Grade Reject Balance ---
     private void updateFactoryBalanceBGradeReject() {
         if (factoryBalanceBGradeRejectText != null && currentLot != null) {
-            int rejectPcs = currentLot.getFactoryBalanceRejectPcs();
+            int rejectPcs = currentLot.getFactoryBalanceBGradeRejectPcs();
             factoryBalanceBGradeRejectText.setText("B Grade Reject Balance: " + rejectPcs + " Pcs.");
         }
     }
@@ -4039,10 +4039,9 @@ public class LotDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Cannot reject more than available B Grade quantity.", Toast.LENGTH_SHORT).show();
             return;
         }
-        // For B Grade, let's use EmbroideryRejectPcs as the reject balance for B Grade
-        int prevReject = currentLot.getFactoryBalanceRejectPcs();
+        int prevReject = currentLot.getFactoryBalanceBGradeRejectPcs();
         currentLot.setFactoryBalanceBGradePcs(available - quantity);
-        currentLot.setFactoryBalanceRejectPcs(prevReject + quantity);
+        currentLot.setFactoryBalanceBGradeRejectPcs(prevReject + quantity);
         // Add to history for audit
         java.util.List<com.dazzling.erp.models.Transfer> history = currentLot.getFactoryBalanceHistory();
         if (history == null) history = new java.util.ArrayList<>();
